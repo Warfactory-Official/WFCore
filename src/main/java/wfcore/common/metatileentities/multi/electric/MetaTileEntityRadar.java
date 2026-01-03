@@ -320,7 +320,17 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     @Override
     public Vec3d getTransform() {
-        return new Vec3d(4, 10, 0);
+        return switch (this.getFrontFacing()) {
+            case WEST ->
+                    new Vec3d(4, 10, 0);
+            case EAST ->
+                    new Vec3d(-4, 10, 0);
+            case NORTH ->
+                    new Vec3d(0, 10, -3);
+            case SOUTH ->
+                    new Vec3d(0, 10, 4);
+            default -> Vec3d.ZERO;
+        };
     }
 
     public BlockPos getLightPos() {
