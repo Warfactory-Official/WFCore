@@ -4,19 +4,18 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import java.math.BigInteger;
 
-import static wfcore.api.capability.data.NBTFileSys.DATA_HANDLER;
-
 // ALL INHERITORS MUST REGISTER THEMSELVES IN THE DATA HANDLER CLASS
 public interface IData {
 
-    public static Class<? extends IData> getDataClass(IData data) {
+    static Class<? extends IData> getDataClass(IData data) {
         return data.getTypeId().clazz;
     }
+    static BigInteger numOpsFromOPSTime(long numSeconds, long OPSBaseline, long scalar) {
+        return BigInteger.valueOf(numSeconds * OPSBaseline * scalar);
+    }
 
-    public abstract DataHandler.DataClassIdentifier getTypeId();
-
-    // used to get around potential size issues with long, but can be used for easier organization
-    public abstract BigInteger numBits();
-
-    public abstract NBTTagCompound toNBT();
+    DataHandler.DataClassIdentifier getTypeId();
+    BigInteger numBits();
+    BigInteger numOpsToExtract();
+    NBTTagCompound toNBT();
 }

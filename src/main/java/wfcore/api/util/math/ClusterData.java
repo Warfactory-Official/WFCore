@@ -98,4 +98,10 @@ public class ClusterData implements IData {
     public BigInteger numBits() {
         return bitsUsed;
     }
+
+    @Override
+    public BigInteger numOpsToExtract() {
+        // should take ~15min at 256 OPS of compute power for every 4 coordinates
+        return IData.numOpsFromOPSTime(900, 256, (long) coordinates.size() >> 2);
+    }
 }

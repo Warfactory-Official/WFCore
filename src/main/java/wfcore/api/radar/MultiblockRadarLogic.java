@@ -55,7 +55,7 @@ public class MultiblockRadarLogic {
             " - category: dim",
             "   intensity: 1",
             "   targets:",
-            "     - minecraft:furnace",
+            "     - container:furnace",
             " - category: bright",
             "   intensity: 10",
             "   targets:",
