@@ -5,6 +5,7 @@ gregtech.material.dirt=Dirt
 wfcore.machine.projector.name=Projector
 wfcore.machine.projector.tooltip=The physical culmination of your journey has the power to tear the gods apart
 wfcore.machine.radar.name=Radar
+wfcore.machine.computer.name=Computer
 item.eight_carrot.name=Burnt Carrot
 wfcore.machine.largesteamforgehammer.name=Large Steam Forge Hammer
 wfcore.machine.largesteamcompressor.name=Large Steam Compressor

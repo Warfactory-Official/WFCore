@@ -21,13 +21,22 @@ import gregtech.common.blocks.BlockBoilerCasing;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import wfcore.api.capability.data.IData;
+import wfcore.api.capability.data.IDataStorage;
+import wfcore.api.capability.data.NBTFileSys;
 import wfcore.client.render.WFTextures;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
+
+import static wfcore.common.recipe.WFCoreMachineRecipes.COMPUTER_RECIPE_MAP;
 
 // TODO: make explicit components placed into controller to make computer work, rather than recipes
 // This could be a lot cooler if I had more time
@@ -38,16 +47,19 @@ public class MetaTileEntityComputer extends RecipeMapMultiblockController {
 
     private int targetSlotId = -1;
     private float targetProgress = 0;
+    private BigInteger accumulatedOps = BigInteger.ZERO;
+    private BigInteger cachedOpsReq = null;
 
     protected IItemHandlerModifiable inputInventory;
     protected IMultipleTankHandler inputFluidInventory;
     protected IEnergyContainer energyContainer;
 
-    private static Object2ObjectOpenHashMap<UUID, MetaTileEntityComputer> HOST_MAP = new Object2ObjectOpenHashMap<>();
+    private static Object2ObjectOpenHashMap<UUID, MetaTileEntityComputer> COMPUTERS = new Object2ObjectOpenHashMap<>();
 
     public MetaTileEntityComputer(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap) {
         super(metaTileEntityId, recipeMap);
         computerId = UUID.randomUUID();
+        COMPUTERS.put(computerId, this);
     }
 
     @Override
@@ -71,7 +83,7 @@ public class MetaTileEntityComputer extends RecipeMapMultiblockController {
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityRadar(this.metaTileEntityId);
+        return new MetaTileEntityComputer(this.metaTileEntityId, COMPUTER_RECIPE_MAP);
     }
 
     @NotNull
@@ -87,7 +99,23 @@ public class MetaTileEntityComputer extends RecipeMapMultiblockController {
     }
 
     protected void initializeAbilities() {
-        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
+        // we want to act whenever a target is modified
+        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS)) {
+            @Override
+            public void setStackInSlot(int slot, @NotNull ItemStack stack) {
+                super.setStackInSlot(slot, stack);
+                if (slot == targetSlotId) { invalidateTarget(); }
+            }
+
+            @NotNull
+            @Override
+            public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                var stack = super.extractItem(slot, amount, simulate);
+                if (slot == targetSlotId) { invalidateTarget(); }
+                return stack;
+            }
+        };
+
         this.inputFluidInventory = new FluidTankList(true,
                 getAbilities(MultiblockAbility.IMPORT_FLUIDS));
         this.energyContainer = new EnergyContainerList(getAbilities(MultiblockAbility.INPUT_ENERGY));
@@ -97,33 +125,58 @@ public class MetaTileEntityComputer extends RecipeMapMultiblockController {
         return currentHostId;
     }
 
-    public boolean hasTarget() {
-        return hasLocalTarget() || currentHostId != null;
-    }
-
-    // TODO: cache host target status if necessary
     public boolean hasHostTarget() {
-        return currentHostId != null && HOST_MAP.containsKey(currentHostId) && HOST_MAP.get(currentHostId).hasLocalTarget();
+        return currentHostId != null && COMPUTERS.containsKey(currentHostId) && COMPUTERS.get(currentHostId).hasLocalTarget();
     }
 
     public boolean hasLocalTarget() {
-        return inputInventory != null && targetSlotId > 0 && inputInventory.getSlots() > targetSlotId && isTargetValidData();
+        if (inputInventory == null || targetSlotId < 0 || inputInventory.getSlots() <= targetSlotId) { return false; }
+        return getLocalTarget().getItem() instanceof IDataStorage;
     }
 
     // assumes has target data is true
-    private boolean isTargetValidData() {
-        var targetStack = inputInventory.getStackInSlot(targetSlotId);
-        return targetStack.getItem() instanceof IData;
+    private ItemStack getLocalTarget() {
+        return inputInventory.getStackInSlot(targetSlotId);
     }
 
     public void invalidateTarget() {
         targetProgress = 0;
+        accumulatedOps = BigInteger.ZERO;
         targetSlotId = -1;
         this.recipeMapWorkable.setWorkingEnabled(false);
+        recipeMapWorkable.invalidate();
+    }
+
+    public void initializeTarget() {
+        targetProgress = 0;
+        accumulatedOps = BigInteger.ZERO;
+        this.recipeMapWorkable.setWorkingEnabled(true);
+    }
+
+    public void initializeTarget(int targetSlotId) {
+        this.currentHostId = null;
+        this.targetSlotId = targetSlotId;
+        initializeTarget();
+    }
+
+    public void initializeTarget(UUID hostId) {
+        this.targetSlotId = -1;
+        this.currentHostId = hostId;
+        initializeTarget();
+    }
+
+    public void supplyCompute(BigInteger ops) {
+        accumulatedOps = accumulatedOps.add(ops);
+    }
+
+    // TODO: let user see filesystem and extra specific data of interest
+    public void onDataExtracted(ArrayList<IData> data) {
+
     }
 
     @Override
     public void update() {
+        super.update();
         if (getWorld().isRemote) { return; }
 
         // update tick counter
@@ -133,12 +186,55 @@ public class MetaTileEntityComputer extends RecipeMapMultiblockController {
         // only update once a second
         if (tickCounter % 20 != 0) { return; }
 
-        // if we are running a recipe, check if the targeted data object is present
-        if (isActive()) {
-            // target missing, reset
-            if (!hasTarget()) {
+        // if we have a local target, check if we have enough compute to pull all the data off of it
+        if (hasLocalTarget()) {
+            if (cachedOpsReq != null) {
+                // not enough compute to finish; don't bother checking
+                if (accumulatedOps.compareTo(cachedOpsReq) < 0) {
+                    return;
+                }
+
 
             }
+
+            // if we have enough compute to finish, or did not have a value cached, we must check again
+            // TODO: don't just target root; take and display paths
+            var target = getLocalTarget();
+            var targetData = ((IDataStorage) target.getItem()).readData(target, NBTFileSys.ROOT_PATH);
+            cachedOpsReq = BigInteger.ZERO;
+            for (var data : targetData) {
+                cachedOpsReq = cachedOpsReq.add(data.numOpsToExtract());
+            }
+
+            // finish the computation
+            if (accumulatedOps.compareTo(cachedOpsReq) >= 0) {
+                onDataExtracted(targetData);
+                invalidateTarget();
+            }
+
+            return;
+        }
+
+        // if we are running a recipe, or could, leave handling to recipe logic
+        if (isActive() || recipeMapWorkable.isWorkingEnabled()) {
+            return;
+        }
+
+        // if we don't have a recipe, see if the host is ready to receive compute work
+        if (hasHostTarget()) {
+            initializeTarget(currentHostId);
+            return;
+        }
+
+        if (inputInventory == null) { return; }
+
+        // the machine can't be not working while having a local target, so we assume there is no local target and search
+        for (int slotId = 0; slotId < inputInventory.getSlots(); ++slotId) {
+            // check if there is a data item to target
+            var slotStack = inputInventory.getStackInSlot(slotId);
+            if (!(slotStack.getItem() instanceof IDataStorage dataStorage)) { continue; }
+
+            if (Objects.equals(dataStorage.numBitsTaken(slotStack), BigInteger.ZERO)) { continue; }  // no data to read
         }
     }
 
