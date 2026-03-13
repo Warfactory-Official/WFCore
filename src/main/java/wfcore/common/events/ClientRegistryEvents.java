@@ -100,4 +100,6 @@ public class ClientRegistryEvents {
     public void onBlockColors(ColorHandlerEvent.Block event) {
         SelfRegisteringModel.registerBlockColorHandlers(event);
     }
+
+
 }

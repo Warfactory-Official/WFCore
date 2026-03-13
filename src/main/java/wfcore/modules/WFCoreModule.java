@@ -10,7 +10,7 @@ import wfcore.WFCore;
 import wfcore.common.network.SPacketUpdateRenderMask;
 
 @GregTechModule(
-        moduleID = "wfcore",
+        moduleID = "warfactory_core",
         containerID = Tags.MODID,
         name = "Warfactory 2 Core",
         description = "Warfactory 2 core module",
@@ -25,4 +25,5 @@ public class WFCoreModule implements IGregTechModule {
     public void registerPackets() {
         GregTechAPI.networkHandler.registerPacket(SPacketUpdateRenderMask.class);
     }
+
 }

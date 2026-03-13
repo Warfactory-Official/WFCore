@@ -35,6 +35,7 @@ import gregtech.client.renderer.ICubeRenderer;
 import lombok.Getter;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -42,6 +43,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import wfcore.api.capability.data.IDataStorage;
@@ -114,6 +116,10 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         initializeAbilities();
         initAnimatedBlocks();
         logic.structureFormed();
+        var world = getWorld();
+        if (world != null && !world.isRemote) {
+            disableBlockRendering(true);
+        }
     }
 
     private static final String[][] patternAisles = {
@@ -140,7 +146,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     static {
         final int animatedLayerIndex = 22;
-        final int controllerAisleIdx = 7;
+        final int controllerAisleIdx = 9;
         final int controllerStringIdx = 12;
         final int controllerCharIdx = 11;
         for (int aisleIdx = 0; aisleIdx < patternAisles.length; ++aisleIdx) {
@@ -220,6 +226,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         super.invalidateStructure();
         resetTileAbilities();
         logic.invalidateStructure();
+        disableBlockRendering(false);
     }
 
     public int getTier() {
@@ -228,6 +235,15 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         }
 
         return GTUtility.getTierByVoltage(energyContainer.getInputVoltage());
+    }
+
+    @Override
+    public void writeInitialSyncData(PacketBuffer buf) {
+        super.writeInitialSyncData(buf);
+        var world = getWorld();
+        if (world != null && !world.isRemote) {
+            disableBlockRendering(isStructureFormed());
+        }
     }
 
     // do radar stuff every tick on the server

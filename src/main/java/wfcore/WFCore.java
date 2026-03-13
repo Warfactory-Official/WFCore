@@ -1,5 +1,6 @@
 package wfcore;
 
+import gregtech.api.GregTechAPI;
 import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -9,7 +10,9 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import wfcore.api.radar.MultiblockRadarLogic;
+import wfcore.common.network.SPacketUpdateRenderMask;
 import wfcore.common.proxy.CommonProxy;
+import wfcore.modules.WFCoreModule;
 
 @Mod(modid = Tags.MODID, version = Tags.VERSION, name = Tags.MODNAME, acceptedMinecraftVersions = "[1.12.2]",
         dependencies = "after:hbm;after:mcheli;required-before:gregtech;required-after-client:mcgltf;required-client:ctm"
@@ -28,6 +31,7 @@ public class WFCore {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        GregTechAPI.networkHandler.registerPacket(SPacketUpdateRenderMask.class);
         proxy.preInit(event);
 
         // read the radar config file
