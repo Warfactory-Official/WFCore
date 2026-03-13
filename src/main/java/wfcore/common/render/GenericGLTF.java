@@ -63,11 +63,11 @@ public class GenericGLTF<T extends MetaTileEntity & IAnimatedMTE> extends MteRen
     public <T extends MetaTileEntity & IAnimatedMTE> void renderGLTF(T mte, float partialTicks) {
         float worldTimeS = Animation.getWorldTime(mte.getWorld(), partialTicks);
         var animation = animations.get(mte.getAnimState());
-        float epochS = mte.getAnimEpoch() / 20f; // convert ticks to seconds
+        float epochS = mte.getAnimEpoch() / 20f;
         float time = worldTimeS - epochS;
 
         if (animation != null && time >= 0) {
-            animation.update(time); // updates animation channels with local time
+            animation.update(time);
         }
 
         // Choose rendering path depending on whether a shader mod is active

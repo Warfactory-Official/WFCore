@@ -24,8 +24,8 @@ public class TERegistry {
     @SideOnly(Side.CLIENT)
     public static void registerRenderers() {
         ClientRegistry.bindTileEntitySpecialRenderer(AnimatablePartTileEntity.class, new AnimatablePartRenderer());
-        registerRenderer(MetaTileEntityRadar.class, new GenericGLTF(
-                new ResourceLocation(Tags.MODID, "model/radar.glb")
+        registerRenderer(MetaTileEntityRadar.class, new GenericGLTF<>(
+                new ResourceLocation(Tags.MODID, "model/radar.gltf")
         ));
 
 

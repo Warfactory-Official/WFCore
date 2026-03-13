@@ -1,21 +1,16 @@
 package wfcore.common.recipe;
 
 import com.hbm.blocks.ModBlocks;
-import com.hbm.blocks.generic.BlockFlammable;
 import com.hbm.items.ModItems;
 import gregtech.api.GTValues;
-import gregtech.api.items.metaitem.MetaItem;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.items.MetaItem1;
 import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.MetaTileEntities;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.FurnaceRecipes;
 import net.minecraft.item.crafting.IRecipe;
@@ -40,14 +35,14 @@ import static wfcore.WFCore.MODID;
 public class VanillaRecipes {
     private static final Set<IRecipe> RECIPES = new HashSet<>();
 
-    public static void registerFurnaceRecipes(RegistryEvent.Register<IRecipe> event){
+    public static void registerFurnaceRecipes(RegistryEvent.Register<IRecipe> event) {
         FurnaceUtil.removeByOutput(MetaItems.FIRECLAY_BRICK.getStackForm(1));
         FurnaceRecipes.instance().addSmelting(Items.CARROT, new ItemStack(ItemRegistry.EIGHT_CARROT), 1);
     }
 
     public static void registerCTRecipes(RegistryEvent.Register<IRecipe> event) {
         ForgeRegistry<IRecipe> registry = (ForgeRegistry<IRecipe>) event.getRegistry();
-        
+
 //Steam Age machines
         registry.remove(new ResourceLocation(RefStrings.HBM, "machine_ammo_press"));
 
@@ -278,11 +273,9 @@ public class VanillaRecipes {
         ).setRegistryName(MODID, "casing_primitive_bricks");
 
 
-
-
         // LV Recipes
         // registry.remove(new ResourceLocation(RefStrings.HBM, "machine_stirling_steel"));
-        
+
 
         registry.remove(new ResourceLocation(RefStrings.HBM, "gear_large_1"));
 

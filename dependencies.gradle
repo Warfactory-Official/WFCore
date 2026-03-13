@@ -54,8 +54,8 @@ dependencies {
 
 
     //WF mods
-    implementation rfg.deobf("curse.maven:hbm-nuclear-tech-mod-community-edition-1312314:7374941")
-    implementation rfg.deobf("curse.maven:mchce-1383222:7393873")
+    implementation rfg.deobf("curse.maven:hbm-nuclear-tech-mod-community-edition-1312314:7685718")
+    implementation rfg.deobf("curse.maven:mchce-1383222:7628896")
 
     runtimeOnly rfg.deobf("curse.maven:ctm-267602:2915363")
 
