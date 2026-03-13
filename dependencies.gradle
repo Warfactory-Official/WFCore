@@ -51,6 +51,7 @@ dependencies {
     api "com.cleanroommc:modularui:3.0.5" transitive false
     shadowImplementation  group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     shadowImplementation("org.yaml:snakeyaml:2.5")
+    compileOnly rfg.deobf("curse.maven:ae2-extended-life-570458:5411078")
 
 
     //WF mods

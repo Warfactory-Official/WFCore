@@ -36,6 +36,7 @@ import lombok.Getter;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -378,14 +379,14 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     @Override
     public AxisAlignedBB getRenderBoundingBox() {
-        BlockPos p = getPos();
-        AxisAlignedBB bb = new AxisAlignedBB(
-                p.getX() - 10, p.getY(),
-                p.getZ() - 10,
-                p.getX() + 10, p.getY() + 1,
-                p.getZ() + 10
-        );
-        return bb;
+      EnumFacing relativeRight = RelativeDirection.RIGHT.getRelativeFacing(getFrontFacing(), getUpwardsFacing(),
+                isFlipped());
+        EnumFacing relativeBack = RelativeDirection.FRONT.getRelativeFacing(getFrontFacing(), getUpwardsFacing(),
+                isFlipped());
+
+        return new AxisAlignedBB(
+                this.getPos().offset(relativeBack,11).offset(relativeRight.getOpposite(), 8),
+                this.getPos().offset(relativeBack.getOpposite(), 5).offset(relativeRight,8).offset(EnumFacing.UP, 38));
     }
 
     @Override
