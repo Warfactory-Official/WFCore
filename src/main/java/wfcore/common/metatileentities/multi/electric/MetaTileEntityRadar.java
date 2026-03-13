@@ -146,9 +146,9 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     static {
         final int animatedLayerIndex = 22;
-        final int controllerAisleIdx = 9;
+        final int controllerAisleIdx = 8;
         final int controllerStringIdx = 12;
-        final int controllerCharIdx = 11;
+        final int controllerCharIdx = 4;
         for (int aisleIdx = 0; aisleIdx < patternAisles.length; ++aisleIdx) {
             String[] aisle = patternAisles[aisleIdx];
             for (int stringIdx = animatedLayerIndex; stringIdx < aisle.length; ++stringIdx) {

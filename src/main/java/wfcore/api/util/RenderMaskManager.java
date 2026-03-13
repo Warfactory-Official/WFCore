@@ -31,7 +31,7 @@ public class RenderMaskManager {
     protected static Map<BlockPos, Collection<BlockPos>> multiDisabled = new HashMap<>();
 
      // Set to true to see red boxes in the world where blocks are masked.
-    public static boolean debugMode = true;
+    public static boolean debugMode = false;
 
     public static void removeDisableModel(BlockPos controllerPos, boolean updateRendering) {
         Collection<BlockPos> poses = multiDisabled.remove(controllerPos);

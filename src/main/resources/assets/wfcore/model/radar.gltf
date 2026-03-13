@@ -119,7 +119,7 @@
           }
         }
       ],
-      "name": "Idle",
+      "name": "idle",
       "samplers": [
         {
           "input": 15,
@@ -162,7 +162,7 @@
           }
         }
       ],
-      "name": "Running",
+      "name": "running_loop",
       "samplers": [
         {
           "input": 19,
