@@ -181,6 +181,7 @@ public abstract class MteRenderer<T extends MetaTileEntity & IAnimatedMTE> imple
         }
 
         GlStateManager.disableRescaleNormal();
+        GlStateManager.disableColorMaterial();
 
         GlStateManager.popMatrix();
     }

@@ -44,7 +44,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import wfcore.api.capability.data.IDataStorage;
@@ -65,8 +64,50 @@ import java.util.List;
 ;
 
 public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IAnimatedMTE {
-    private final MultiblockRadarLogic logic = new MultiblockRadarLogic(this);  // this should be created/modified whenever structure is formed/modified
+    private static final String[][] patternAisles = {
+            {"                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "      JJJJ      ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" GGGCG    GCGGG ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "    JJ    JJ    ", "    JJ    JJ    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" GFCGG    GGCFG ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "   KKKKKKKKKK   ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "    JJJJJJJJ    ", "   J   EE   J   ", "   J   EE   J   ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" GCGG      GGCG ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "                ", "                ", "                ", "                ", "                ", "  KKGGGGGGGGKK  ", "   GG      GG   ", "    F      F    ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "    FF    FF    ", "    FFFFFFFF    ", "       FF       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "   JJJJJJJJJJ   ", "  J          J  ", "  J          J  ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" CGG        GGC ", " F            F ", " F            F ", " F            F ", " F            F ", " F            F ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  KGGGGGGGGGGK  ", "   GG      GG   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    F      F    ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "     JJJJJJ     ", "  JJJ      JJJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" GG    KKK   GG ", "       KIK      ", "       KIK      ", "       KKK      ", "                ", "                ", "  F          F  ", "                ", "                ", "                ", "                ", "  KGGGGGGGGGGK  ", "                ", "                ", "   F        F   ", "                ", "                ", "                ", "                ", "   F        F   ", "   F        F   ", "                ", "     FKKHKF     ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "    JJJJJJJJ    ", "  JJ        JJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                "},
+            {"       KKK      ", "       KHI      ", "       KHI      ", "       KKK      ", "                ", "                ", "                ", "  F          F  ", "                ", "                ", "  F          F  ", "  KGGGGGGGGGGK  ", "           K    ", "                ", "                ", "   F        F   ", "                ", "                ", "   F        F   ", "                ", "   F        F   ", "                ", "    KKKKHKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J              J", "J              J", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "                ", "                "},
+            {"       KKK      ", "       KHI      ", "       KHI      ", "       KHK      ", "        H       ", "        H       ", "        H       ", "        H       ", "  F     H    F  ", "  F     H    F  ", "        H       ", "  KGGGGGHHHHGK  ", "        H  A    ", "        H       ", "        H       ", "        H       ", "   F    H   F   ", "   F    H   F   ", "        H       ", "        H       ", "   F    H   F   ", "   F    H   F   ", "    KKKKHKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J E          E J", "J E          E J", "  E          E  ", "   E        E   ", "   E        E   ", "   E        E   ", "    E      E    ", "    E      E    ", "     E    E     ", "     E    E     ", "     E    E     ", "      E  E      ", "       BB       ", "       BB       "},
+            {"       KKK      ", "       KKK      ", "       KKK      ", "       KKK      ", "        K       ", "        K       ", "        K       ", "        K       ", "  F     K    F  ", "  F     K    F  ", "        K       ", "  KGGGGGGGGGGK  ", "           K    ", "                ", "                ", "                ", "   F        F   ", "   F        F   ", "                ", "                ", "   F        F   ", "   F        F   ", "    KKKKKKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J E          E J", "J E          E J", "  E          E  ", "   E        E   ", "   E        E   ", "   E        E   ", "    E      E    ", "    E      E    ", "     E    E     ", "     E    E     ", "     E    E     ", "      E  E      ", "       BB       ", "       BB       "},
+            {"                ", "                ", "                ", "                ", "                ", "                ", "                ", "  F          F  ", "                ", "                ", "  F          F  ", "  KGGGGG GGGGK  ", "           K    ", "                ", "                ", "   F        F   ", "                ", "                ", "   F        F   ", "                ", "   F        F   ", "                ", "    KKKKKKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J              J", "J              J", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "                ", "                "},
+            {" GG          GG ", "                ", "                ", "                ", "                ", "                ", "  F          F  ", "                ", "                ", "                ", "                ", "  KGGGGGGGGGGK  ", "                ", "                ", "   F        F   ", "                ", "                ", "                ", "                ", "   F        F   ", "   F        F   ", "                ", "     FKKKKF     ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "    JJJJJJJJ    ", "  JJ        JJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                "},
+            {" CGG        GGC ", " F            F ", " F            F ", " F            F ", " F            F ", " F            F ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  KGGGGGGGGGGK  ", "   GG      GG   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    F      F    ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "     JJJJJJ     ", "  JJJ      JJJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" GCGG      GGCG ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "                ", "                ", "                ", "                ", "                ", "  KKGGGGGGGGKK  ", "   GG      GG   ", "    F      F    ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "    FF    FF    ", "    FFFFFFFF    ", "       FF       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "   JJJJJJJJJJ   ", "  J          J  ", "  J          J  ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" GFCGG    GGCFG ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "   KKKKKKKKKK   ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "    JJJJJJJJ    ", "   J   EE   J   ", "   J   EE   J   ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {" GGGCG    GCGGG ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "    JJ    JJ    ", "    JJ    JJ    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
+            {"                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "      JJJJ      ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "}
+    };
+    private static final ArrayList<int[]> ANIM_BLOCKS_CONTROLLER_OFFSETS = new ArrayList<>();  // char offset, string offset, aisle offset
+    private static final RelativeDirection charRelDir = RelativeDirection.FRONT;
+    private static final RelativeDirection stringRelDir = RelativeDirection.UP;
+    private static final RelativeDirection aisleRelDir = RelativeDirection.RIGHT;
 
+    static {
+        final int animatedLayerIndex = 22;
+        final int controllerAisleIdx = 8;
+        final int controllerStringIdx = 12;
+        final int controllerCharIdx = 4;
+        for (int aisleIdx = 0; aisleIdx < patternAisles.length; ++aisleIdx) {
+            String[] aisle = patternAisles[aisleIdx];
+            for (int stringIdx = animatedLayerIndex; stringIdx < aisle.length; ++stringIdx) {
+                String currLayer = aisle[stringIdx];
+                for (int charIdx = 0; charIdx < currLayer.length(); ++charIdx) {
+                    if (currLayer.charAt(charIdx) == ' ' || currLayer.charAt(charIdx) == '#') {
+                        continue;
+                    }
+                    ANIM_BLOCKS_CONTROLLER_OFFSETS.add(new int[]{charIdx - controllerCharIdx, stringIdx - controllerStringIdx, aisleIdx - controllerAisleIdx});
+                }
+            }
+        }
+    }
+
+    private final MultiblockRadarLogic logic = new MultiblockRadarLogic(this);  // this should be created/modified whenever structure is formed/modified
+    private final Collection<BlockPos> ANIMATED_BLOCKS;
     protected IItemHandlerModifiable inputInventory;
     protected IItemHandlerModifiable outputInventory;
     protected IMultipleTankHandler inputFluidInventory;
@@ -123,49 +164,6 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         }
     }
 
-    private static final String[][] patternAisles = {
-            {"                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "      JJJJ      ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" GGGCG    GCGGG ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "    JJ    JJ    ", "    JJ    JJ    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" GFCGG    GGCFG ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "   KKKKKKKKKK   ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "    JJJJJJJJ    ", "   J   EE   J   ", "   J   EE   J   ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" GCGG      GGCG ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "                ", "                ", "                ", "                ", "                ", "  KKGGGGGGGGKK  ", "   GG      GG   ", "    F      F    ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "    FF    FF    ", "    FFFFFFFF    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "   JJJJJJJJJJ   ", "  J          J  ", "  J          J  ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" CGG        GGC ", " F            F ", " F            F ", " F            F ", " F            F ", " F            F ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  KGGGGGGGGGGK  ", "   GG      GG   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    F      F    ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "     JJJJJJ     ", "  JJJ      JJJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" GG    KKK   GG ", "       KIK      ", "       KIK      ", "       KKK      ", "                ", "                ", "  F          F  ", "                ", "                ", "                ", "                ", "  KGGGGGGGGGGK  ", "                ", "                ", "   F        F   ", "                ", "                ", "                ", "                ", "   F        F   ", "   F        F   ", "                ", "     FKKHKF     ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "    JJJJJJJJ    ", "  JJ        JJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                "},
-            {"       KKK      ", "       KHI      ", "       KHI      ", "       KKK      ", "                ", "                ", "                ", "  F          F  ", "                ", "                ", "  F          F  ", "  KGGGGGGGGGGK  ", "           K    ", "                ", "                ", "   F        F   ", "                ", "                ", "   F        F   ", "                ", "   F        F   ", "                ", "    KKKKHKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J              J", "J              J", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "                ", "                "},
-            {"       KKK      ", "       KHI      ", "       KHI      ", "       KHK      ", "        H       ", "        H       ", "        H       ", "        H       ", "  F     H    F  ", "  F     H    F  ", "        H       ", "  KGGGGGHHHHGK  ", "        H  A    ", "        H       ", "        H       ", "        H       ", "   F    H   F   ", "   F    H   F   ", "        H       ", "        H       ", "   F    H   F   ", "   F    H   F   ", "    KKKKHKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J E          E J", "J E          E J", "  E          E  ", "   E        E   ", "   E        E   ", "   E        E   ", "    E      E    ", "    E      E    ", "     E    E     ", "     E    E     ", "     E    E     ", "      E  E      ", "       BB       ", "       BB       "},
-            {"       KKK      ", "       KKK      ", "       KKK      ", "       KKK      ", "        K       ", "        K       ", "        K       ", "        K       ", "  F     K    F  ", "  F     K    F  ", "        K       ", "  KGGGGGGGGGGK  ", "           K    ", "                ", "                ", "                ", "   F        F   ", "   F        F   ", "                ", "                ", "   F        F   ", "   F        F   ", "    KKKKKKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J E          E J", "J E          E J", "  E          E  ", "   E        E   ", "   E        E   ", "   E        E   ", "    E      E    ", "    E      E    ", "     E    E     ", "     E    E     ", "     E    E     ", "      E  E      ", "       BB       ", "       BB       "},
-            {"                ", "                ", "                ", "                ", "                ", "                ", "                ", "  F          F  ", "                ", "                ", "  F          F  ", "  KGGGGG GGGGK  ", "           K    ", "                ", "                ", "   F        F   ", "                ", "                ", "   F        F   ", "                ", "   F        F   ", "                ", "    KKKKKKKK    ", "                ", "                ", "      DDDD      ", "       DD       ", "       DD       ", "       BB       ", "       BB       ", "      JJJJ      ", "    JJ    JJ    ", " JJJ        JJJ ", "J              J", "J              J", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "                ", "                "},
-            {" GG          GG ", "                ", "                ", "                ", "                ", "                ", "  F          F  ", "                ", "                ", "                ", "                ", "  KGGGGGGGGGGK  ", "                ", "                ", "   F        F   ", "                ", "                ", "                ", "                ", "   F        F   ", "   F        F   ", "                ", "     FKKKKF     ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "    JJJJJJJJ    ", "  JJ        JJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                "},
-            {" CGG        GGC ", " F            F ", " F            F ", " F            F ", " F            F ", " F            F ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  KGGGGGGGGGGK  ", "   GG      GG   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    F      F    ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KKKK      ", "      KBBK      ", "       KK       ", "                ", "     JJJJJJ     ", "  JJJ      JJJ  ", " J            J ", " J            J ", "                ", "                ", "                ", "                ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" GCGG      GGCG ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "  F          F  ", "                ", "                ", "                ", "                ", "                ", "  KKGGGGGGGGKK  ", "   GG      GG   ", "    F      F    ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "    FF    FF    ", "    FFFFFFFF    ", "       FF       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "   JJJJJJJJJJ   ", "  J          J  ", "  J          J  ", "                ", "       EE       ", "       EE       ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" GFCGG    GGCFG ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "   F        F   ", "    FF    FF    ", "    F F  F F    ", "    F  FF  F    ", "    F  FF  F    ", "    F F  F F    ", "   KKKKKKKKKK   ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "    JJJJJJJJ    ", "   J   EE   J   ", "   J   EE   J   ", "       EE       ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {" GGGCG    GCGGG ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "    JJ    JJ    ", "    JJ    JJ    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
-            {"                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "      JJJJ      ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "}
-    };
-
-    private final Collection<BlockPos> ANIMATED_BLOCKS;
-    private static final ArrayList<int[]> ANIM_BLOCKS_CONTROLLER_OFFSETS = new ArrayList<>();  // char offset, string offset, aisle offset
-
-    static {
-        final int animatedLayerIndex = 22;
-        final int controllerAisleIdx = 8;
-        final int controllerStringIdx = 12;
-        final int controllerCharIdx = 4;
-        for (int aisleIdx = 0; aisleIdx < patternAisles.length; ++aisleIdx) {
-            String[] aisle = patternAisles[aisleIdx];
-            for (int stringIdx = animatedLayerIndex; stringIdx < aisle.length; ++stringIdx) {
-                String currLayer = aisle[stringIdx];
-                for (int charIdx = 0; charIdx < currLayer.length(); ++charIdx) {
-                    if (currLayer.charAt(charIdx) == ' ' || currLayer.charAt(charIdx) == '#') { continue; }
-                    ANIM_BLOCKS_CONTROLLER_OFFSETS.add(new int[]{charIdx - controllerCharIdx, stringIdx - controllerStringIdx, aisleIdx - controllerAisleIdx});
-                }
-            }
-        }
-    }
-
-    private static final RelativeDirection charRelDir = RelativeDirection.FRONT;
-    private static final RelativeDirection stringRelDir = RelativeDirection.UP;
-    private static final RelativeDirection aisleRelDir = RelativeDirection.RIGHT;
-
     private void initAnimatedBlocks() {
         for (int[] blockOffset : ANIM_BLOCKS_CONTROLLER_OFFSETS) {
             // shift by the stored amount of char, string, and aisle; should automatically handle negatives
@@ -180,36 +178,36 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     protected @NotNull BlockPattern createStructurePattern() {
         // don't change the relative directions without also updating the animated blocks initializer
         return FactoryBlockPattern.start(charRelDir, stringRelDir, aisleRelDir)
-                        .aisle(patternAisles[0])
-                        .aisle(patternAisles[1])
-                        .aisle(patternAisles[2])
-                        .aisle(patternAisles[3])
-                        .aisle(patternAisles[4])
-                        .aisle(patternAisles[5])
-                        .aisle(patternAisles[6])
-                        .aisle(patternAisles[7])
-                        .aisle(patternAisles[8])
-                        .aisle(patternAisles[9])
-                        .aisle(patternAisles[10])
-                        .aisle(patternAisles[11])
-                        .aisle(patternAisles[12])
-                        .aisle(patternAisles[13])
-                        .aisle(patternAisles[14])
-                        .aisle(patternAisles[15])
-                        .where('A', selfPredicate())
-                        .where('B', WFPredicates.compressedBlocks(Materials.Aluminium))
-                        .where('D', WFPredicates.compressedBlocks(Materials.Lead))
-                        .where('E', frames(Materials.Aluminium))
-                        .where('G', blocks(ModBlocks.concrete_smooth))
-                        .where('H', blocks(ModBlocks.deco_red_copper))
-                        .where('J', boltable())
-                        .where('C', WFPredicates.compressedBlocks(Materials.Steel))
-                        .where('F', frames(WFMaterials.GalvanizedSteel))
-                        .where('I', abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.IMPORT_ITEMS)) //FIXME
-                        .where('K', aluCasing())
-                        .where('#', any())
-                        .where(' ', any())
-                        .build();
+                .aisle(patternAisles[0])
+                .aisle(patternAisles[1])
+                .aisle(patternAisles[2])
+                .aisle(patternAisles[3])
+                .aisle(patternAisles[4])
+                .aisle(patternAisles[5])
+                .aisle(patternAisles[6])
+                .aisle(patternAisles[7])
+                .aisle(patternAisles[8])
+                .aisle(patternAisles[9])
+                .aisle(patternAisles[10])
+                .aisle(patternAisles[11])
+                .aisle(patternAisles[12])
+                .aisle(patternAisles[13])
+                .aisle(patternAisles[14])
+                .aisle(patternAisles[15])
+                .where('A', selfPredicate())
+                .where('B', WFPredicates.compressedBlocks(Materials.Aluminium))
+                .where('D', WFPredicates.compressedBlocks(Materials.Lead))
+                .where('E', frames(Materials.Aluminium))
+                .where('G', blocks(ModBlocks.concrete_smooth))
+                .where('H', blocks(ModBlocks.deco_red_copper))
+                .where('J', boltable())
+                .where('C', WFPredicates.compressedBlocks(Materials.Steel))
+                .where('F', frames(WFMaterials.GalvanizedSteel))
+                .where('I', abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.IMPORT_ITEMS)) //FIXME
+                .where('K', aluCasing())
+                .where('#', any())
+                .where(' ', any())
+                .build();
 
     }
 
@@ -284,7 +282,8 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
                 // write the last scan to the data storage item
                 var stackToWrite = slotStack.copy();  // create copy that we are allowed to modify
                 var unwrittenIt = logic.lastScan.iterator();
-                while (unwrittenIt.hasNext() && storage.writeData(stackToWrite, unwrittenIt.next())) {}
+                while (unwrittenIt.hasNext() && storage.writeData(stackToWrite, unwrittenIt.next())) {
+                }
 
                 // probably shouldn't try to rewrite all the data if it fails, but should be fine
                 tryWrite = unwrittenIt.hasNext();  // update tryWrite on successful writes only
@@ -379,27 +378,23 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     @Override
     public AxisAlignedBB getRenderBoundingBox() {
-      EnumFacing relativeRight = RelativeDirection.RIGHT.getRelativeFacing(getFrontFacing(), getUpwardsFacing(),
+        EnumFacing relativeRight = RelativeDirection.RIGHT.getRelativeFacing(getFrontFacing(), getUpwardsFacing(),
                 isFlipped());
         EnumFacing relativeBack = RelativeDirection.FRONT.getRelativeFacing(getFrontFacing(), getUpwardsFacing(),
                 isFlipped());
 
         return new AxisAlignedBB(
-                this.getPos().offset(relativeBack,11).offset(relativeRight.getOpposite(), 8),
-                this.getPos().offset(relativeBack.getOpposite(), 5).offset(relativeRight,8).offset(EnumFacing.UP, 38));
+                this.getPos().offset(relativeBack, 11).offset(relativeRight.getOpposite(), 8),
+                this.getPos().offset(relativeBack.getOpposite(), 5).offset(relativeRight, 8).offset(EnumFacing.UP, 38));
     }
 
     @Override
     public Vec3d getTransform() {
         return switch (this.getFrontFacing()) {
-            case WEST ->
-                    new Vec3d(-3, 10, 1);
-            case EAST ->
-                    new Vec3d(4, 10, 0);
-            case NORTH ->
-                    new Vec3d(0, 10, -3);
-            case SOUTH ->
-                    new Vec3d(1, 10, 4);
+            case WEST -> new Vec3d(-3, 10, 1);
+            case EAST -> new Vec3d(4, 10, 0);
+            case NORTH -> new Vec3d(0, 10, -3);
+            case SOUTH -> new Vec3d(1, 10, 4);
             default -> Vec3d.ZERO;
         };
     }
