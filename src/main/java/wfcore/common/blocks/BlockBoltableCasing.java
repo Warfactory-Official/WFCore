@@ -19,6 +19,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -60,6 +61,12 @@ public class BlockBoltableCasing extends VariantBlock<BlockBoltableCasing.Boltab
         setSoundType(SoundType.METAL);
         BlockRegistry.BLOCKS.add(this);
 
+    }
+
+
+    protected ItemStack getSilkTouchDrop(IBlockState state)
+    {
+        return new ItemStack(state.getBlock(), 1, damageDropped(state));
     }
 
     @Override

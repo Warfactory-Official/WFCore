@@ -208,7 +208,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
                         .where('I', abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.IMPORT_ITEMS)) //FIXME
                         .where('K', aluCasing())
                         .where('#', any())
-                        .where(' ', air())
+                        .where(' ', any())
                         .build();
 
     }
@@ -393,13 +393,13 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     public Vec3d getTransform() {
         return switch (this.getFrontFacing()) {
             case WEST ->
-                    new Vec3d(4, 10, 0);
+                    new Vec3d(-3, 10, 1);
             case EAST ->
-                    new Vec3d(-4, 10, 0);
+                    new Vec3d(4, 10, 0);
             case NORTH ->
                     new Vec3d(0, 10, -3);
             case SOUTH ->
-                    new Vec3d(0, 10, 4);
+                    new Vec3d(1, 10, 4);
             default -> Vec3d.ZERO;
         };
     }
