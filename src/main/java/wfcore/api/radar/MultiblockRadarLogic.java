@@ -1,6 +1,6 @@
 package wfcore.api.radar;
 
-import com.mojang.realmsclient.util.Pair;
+import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.objects.*;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
@@ -13,12 +13,15 @@ import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.jetbrains.annotations.NotNull;
 import org.yaml.snakeyaml.Yaml;
+import test.RadarClusteringEngine;
 import wfcore.WFCore;
 import wfcore.api.util.math.ClusterData;
 import wfcore.api.util.math.IntCoord2;
 import wfcore.api.util.math.BoundingBox;
+import wfcore.common.managers.RadarDataManager;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 
+import javax.xml.crypto.Data;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,8 +36,8 @@ import static wfcore.api.util.LogUtil.logExceptionWithTrace;
 
 public class MultiblockRadarLogic {
     //TODO: Make those values adjustable in GUI
-    public static final int MIN_PTS = 1;
-    public static final int EPS = 10;
+    public static final int MIN_PTS = 10;
+    public static final int EPS = 200;
 
     private int voltageTier;
     private int overclockAmount;
@@ -173,7 +176,7 @@ public class MultiblockRadarLogic {
         //Scanner cannot perform a scan if data is already written
         if(true || !dataSlotIsEmpty() && !dataSlotIsWritten()){
             //Get the snapshot of all loaded players TEs
-            Map<IntCoord2, Object> loadedValidObjects = this.collectValidEntites();
+            Map<IntCoord2,DataPoint> loadedValidObjects = this.collectValidEntites();
             //Run dbscan
             //this.scanResults = clusterData;
             calculateDBSCAN(loadedValidObjects).thenAccept(this::storeScanResult).exceptionally(ex -> {
@@ -190,28 +193,51 @@ public class MultiblockRadarLogic {
         return TE_WHITELIST.contains(currId);
     }
 
+    public static int getValue(TileEntity tileEntity) {
+        RadarTargetIdentifier currId = RadarTargetIdentifier.getBestIdentifier(tileEntity);
+        return TE_WHITELIST.get(currId).intensity;
+    }
+
     static public IntCoord2 getCoordPair(BlockPos pos) {
         return new IntCoord2(pos);
     }
 
     //Collect snapshot of all players and valid TEs
-    private HashMap<IntCoord2, Object> collectValidEntites() {
+    private HashMap<IntCoord2, DataPoint> collectValidEntites() {
         MinecraftServer serverInstance = FMLCommonHandler.instance().getMinecraftServerInstance();
-        HashMap<IntCoord2, Object> entityPosMap = new HashMap<>();
+        HashMap<IntCoord2, DataPoint> entityPosMap = new HashMap<>();
 
         List<EntityPlayerMP> worldPlayers = serverInstance.getPlayerList().getPlayers();
         for (EntityPlayerMP player : worldPlayers) {
-            entityPosMap.put(getCoordPair(player.getPosition()), player);
+            entityPosMap.put(getCoordPair(player.getPosition()), new DataPoint(TargetType.PLAYER,0));
         }
 
-        List<TileEntity> worldTileEntites = serverInstance.getEntityWorld().loadedTileEntityList;
-        for (TileEntity tileEntity : worldTileEntites) {
-            if (isOnTEWhitelist(tileEntity)) entityPosMap.put(getCoordPair(tileEntity.getPos()), tileEntity);
+        ObjectIterator<Long2IntMap.Entry> iterator = RadarDataManager.INSTANCE.getMachineMap().long2IntEntrySet().iterator();
+        while (iterator.hasNext()) {
+            Long2IntMap.Entry entry = iterator.next();
+            long packed = entry.getLongKey();
+            int val = entry.getIntValue();
+
+            int x = (int) (packed >> 32);
+            int z = (int) packed;
+
+            entityPosMap.put(new IntCoord2(x, z), new DataPoint(TargetType.STRUCTURE, val));
         }
+
 
         return entityPosMap;
     }
 
+    public enum TargetType {
+        PLAYER,
+        STRUCTURE
+    }
+
+    //Note: players have no value
+    public record DataPoint(TargetType type, int value) {
+    }
+
+    ;
     /*
     Radar takes all loaded valid entities and players, uses clustering algorithm DBSCAN and finds
     all clusters, which in this case are bases.
@@ -220,7 +246,7 @@ public class MultiblockRadarLogic {
     be ran async and must be done before the simulated scan is done (default time: 2000 seconds),
     values such as EPS and MIN_PTS should be adjustable in GUI by player.
      */
-    private CompletableFuture<List<ClusterData>> calculateDBSCAN(Map<IntCoord2, Object> objMap) {
+    private CompletableFuture<List<ClusterData>> calculateDBSCAN(Map<IntCoord2, DataPoint> objMap) {
 
         return CompletableFuture.supplyAsync(() -> {
             DBSCANClusterer<IntCoord2> dbscan = new DBSCANClusterer<>(EPS, MIN_PTS);
@@ -253,27 +279,30 @@ public class MultiblockRadarLogic {
                 IntCoord2 boundingBoxMax = new IntCoord2(maxX, maxZ);
                 IntCoord2 clusterCenter = new IntCoord2(sumX / clusterPoints.size(), sumZ / clusterPoints.size());
 
-                int playerPopulation = calculatePlayerPopulation(objMap, clusterPoints);
+                int population = 0;
+                int clusterValue = 0;
+                for (IntCoord2 point : clusterPoints) {
+                    DataPoint dataPoint = objMap.get(point);
+                    switch (dataPoint.type) {
+                        case PLAYER -> population++;
+                        case STRUCTURE -> {
+                            if (dataPoint.value > 0)
+                                clusterValue += dataPoint.value;
+                            else
+                                clusterValue++;
+                        }
+                    }
+                }
 
                 clusterDataList.add(new ClusterData(
                         clusterPoints,
                         clusterCenter,
-                        new BoundingBox(boundingBoxMin, boundingBoxMax),
-                        playerPopulation
-                ));
+                        new BoundingBox(boundingBoxMin, boundingBoxMax), clusterValue,
+                        population));
             }
             return clusterDataList;
-        });
-    }
 
-    private int calculatePlayerPopulation(Map<IntCoord2, Object> objMap, List<IntCoord2> clusterPoints) {
-        int population = 0;
-        for (IntCoord2 point : clusterPoints) {
-            if (objMap.get(point) instanceof EntityPlayerMP) {
-                population++;
-            }
-        }
-        return population;
+        });
     }
 
 

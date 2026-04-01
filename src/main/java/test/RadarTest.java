@@ -2,7 +2,6 @@ package test;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.junit.jupiter.api.Test;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -67,6 +66,6 @@ public class RadarTest {
             e.printStackTrace();
         }
 
-        assertEquals(true,true);
+        assertEquals(true, true);
     }
 }

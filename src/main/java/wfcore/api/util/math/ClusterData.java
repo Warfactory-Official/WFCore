@@ -14,13 +14,15 @@ public class ClusterData implements IData {
     public final List<IntCoord2> coordinates;
     public final IntCoord2 centerPoint;
     public final BoundingBox boundingBox;
+    public final int clusterValue;
     public final int playerPopulation;
     public final BigInteger bitsUsed;
 
-    public ClusterData(List<IntCoord2> coordinates, IntCoord2 centerPoint, BoundingBox boundingBox, int playerPopulation) {
+    public ClusterData(List<IntCoord2> coordinates, IntCoord2 centerPoint, BoundingBox boundingBox, int clusterValue, int playerPopulation) {
         this.coordinates = coordinates;
         this.centerPoint = centerPoint;
         this.boundingBox = boundingBox;
+        this.clusterValue = clusterValue;
         this.playerPopulation = playerPopulation;
         bitsUsed = BigInteger.valueOf(28 + ((long) coordinates.size() << 2));
     }
@@ -33,6 +35,8 @@ public class ClusterData implements IData {
         // summarize cluster
         str.append("Cluster Centered on ");
         str.append(centerPoint.toString());
+        str.append(" with combined value of ");
+        str.append(clusterValue);
         str.append(" with ");
         str.append(playerPopulation);
         str.append(" player(s) inside ");
@@ -72,6 +76,7 @@ public class ClusterData implements IData {
                 coords,
                 IntCoord2.fromNBT(nbt.getCompoundTag("center")),
                 BoundingBox.fromNBT(nbt.getCompoundTag("bounds")),
+                nbt.getInteger("value"),
                 nbt.getInteger("pop")
         );
     }
@@ -79,6 +84,7 @@ public class ClusterData implements IData {
     public NBTTagCompound toNBT() {
         NBTTagCompound nbt = new NBTTagCompound();
         nbt.setInteger("pop", playerPopulation);
+        nbt.setInteger("value", clusterValue);
         nbt.setTag("center", centerPoint.toNBT());
         nbt.setTag("bounds", boundingBox.toNBT());
 

@@ -3,9 +3,11 @@ package wfcore.common.proxy;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import wfcore.common.events.RegistryEvents;
+import wfcore.common.managers.RadarDataManager;
 import wfcore.common.recipe.HBMRecepies;
 import wfcore.common.recipe.WFCoreMachineRecipes;
 
@@ -35,4 +37,10 @@ public class CommonProxy {
         WFCoreMachineRecipes.initRecipes();
     }
 
+    @SubscribeEvent
+    public void onWorldLoad(WorldEvent.Load event) {
+        if (!event.getWorld().isRemote) {
+            RadarDataManager.INSTANCE.init(event.getWorld());
+        }
+    }
 }
