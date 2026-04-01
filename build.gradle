@@ -517,6 +517,8 @@ configurations {
 }
 
 dependencies {
+    implementation 'org.junit.jupiter:junit-jupiter:6.0.0'
+    implementation 'junit:junit:4.12'
     if (usesMixins.toBoolean()) {
         annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
         // should use 24.1.1 but 30.0+ has a vulnerability fix
