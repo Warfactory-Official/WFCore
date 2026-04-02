@@ -212,7 +212,7 @@ public class MultiblockRadarLogic {
             entityPosMap.put(getCoordPair(player.getPosition()), new DataPoint(TargetType.PLAYER,0));
         }
 
-        ObjectIterator<Long2IntMap.Entry> iterator = RadarDataManager.INSTANCE.getMachineMap().long2IntEntrySet().iterator();
+        ObjectIterator<Long2IntMap.Entry> iterator = RadarDataManager.INSTANCE.getHandler(metaTileEntity.getWorld()).getMachineMap().long2IntEntrySet().iterator();
         while (iterator.hasNext()) {
             Long2IntMap.Entry entry = iterator.next();
             long packed = entry.getLongKey();

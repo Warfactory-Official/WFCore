@@ -4,6 +4,9 @@ import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import wfcore.WFCore;
 
 import java.io.DataInputStream;
@@ -20,18 +23,59 @@ import net.minecraft.nbt.NBTTagCompound;
 public class Retrofitter {
 
    public static boolean active = false;
+   public static final Retrofitter INSTANCE = new Retrofitter();
 
-   public static void onTick(WorldServer world){
-       if(!active) return;
+    // Adjust this to control scan speed. 1-3 is safe. 5+ may lag heavy modpacks.
+    private static final int CHUNKS_PER_TICK = 5;
 
+    @SubscribeEvent
+    public void onWorldTick(TickEvent.WorldTickEvent event) {
+        if (!active || event.side.isClient() || event.phase != TickEvent.Phase.END) return;
 
-   }
-   public final LongOpenHashSet queue = new LongOpenHashSet();
+        WorldServer world = (WorldServer) event.world;
+        if (world.provider.getDimension() != 0) return;
+
+        for (int i = 0; i < CHUNKS_PER_TICK; i++) {
+            long packed = pollFromSet();
+
+            if (packed == Long.MIN_VALUE) break;
+
+            int cx = (int) (packed >> 32);
+            int cz = (int) packed;
+
+            wakeChunk(world, cx, cz);
+        }
+    }
+    private synchronized long pollFromSet() {
+
+        if (queue.isEmpty()) return Long.MIN_VALUE;
+
+        long val = queue.iterator().nextLong();
+        queue.remove(val);
+        return val;
+    }
+
+    private void wakeChunk(WorldServer world, int cx, int cz) {
+        boolean wasLoaded = world.getChunkProvider().chunkExists(cx, cz);
+
+        net.minecraft.world.chunk.Chunk chunk = world.getChunkProvider().loadChunk(cx, cz);
+
+        if (chunk != null && !wasLoaded) {
+            world.getChunkProvider().queueUnload(chunk);
+
+            if (WFCore.DEBUG) {
+                WFCore.LOGGER.info("Woke and queued unload for chunk at [{}, {}]", cx, cz);
+            }
+        }
+    }
+
+        public final LongOpenHashSet queue = new LongOpenHashSet();
 
     private final int threads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
     private final ExecutorService executor = Executors.newFixedThreadPool(threads);
 
    public void startGlobalScan(File region){
+       active = true;
        File[] files = region.listFiles((dir, name) -> name.endsWith(".mca"));
        if (files == null) return;
 

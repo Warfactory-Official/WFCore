@@ -6,6 +6,7 @@ import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import wfcore.common.commands.CommandRetrofit;
 import wfcore.common.events.RegistryEvents;
 import wfcore.common.managers.RadarDataManager;
 import wfcore.common.recipe.HBMRecepies;
@@ -30,6 +31,7 @@ public class CommonProxy {
     }
 
     public final void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new CommandRetrofit());
     }
 
     @SubscribeEvent
@@ -37,10 +39,5 @@ public class CommonProxy {
         WFCoreMachineRecipes.initRecipes();
     }
 
-    @SubscribeEvent
-    public void onWorldLoad(WorldEvent.Load event) {
-        if (!event.getWorld().isRemote) {
-            RadarDataManager.INSTANCE.init(event.getWorld());
-        }
-    }
+
 }

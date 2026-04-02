@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import wfcore.WFCore;
 import wfcore.api.radar.MultiblockRadarLogic;
+import wfcore.api.radar.RadarTargetIdentifier;
 import wfcore.common.managers.RadarDataManager;
 
 @Mixin(World.class)
@@ -32,40 +33,52 @@ public abstract class RadarRegistryWorldMixin {
                     MultiblockRadarLogic.getValue(te)
             );
             if (WFCore.DEBUG)
-                WFCore.LOGGER.info("Added TileEntity to map.");
+                WFCore.LOGGER.info("Added TileEntity {} to map at {} [Dim: {}]", RadarTargetIdentifier.getBestIdentifier(te), te.getPos().toString(), world.provider.getDimension());
         }
     }
 
     @Inject(method = "removeTileEntity", at = @At("HEAD"))
     private void onRemoveTileEntity(BlockPos pos, CallbackInfo ci) {
         World world = (World) (Object) this;
-        if (!world.isRemote) {
 
-            WorldServer server = (WorldServer) world;
-            ChunkProviderServer provider = server.getChunkProvider();
+        if (!(world.isRemote || world.getMapStorage() == null) && RadarDataManager.INSTANCE.hasMachine(world,pos.getX(), pos.getZ())) {
 
-            int cx = pos.getX() >> 4;
-            int cz = pos.getZ() >> 4;
+            if (world instanceof WorldServer) {
+                WorldServer server = (WorldServer) world;
+                ChunkProviderServer provider = server.getChunkProvider();
 
-            Chunk chunk = provider.getLoadedChunk(cx, cz);
+                int cx = pos.getX() >> 4;
+                int cz = pos.getZ() >> 4;
 
-            boolean isChunkUnloading = (chunk == null);
+                Chunk chunk = provider.getLoadedChunk(cx, cz);
 
-            if (!isChunkUnloading) {
-                long packed = ChunkPos.asLong(cx, cz);
-                if (provider.droppedChunks.contains(packed)) {
-                    isChunkUnloading = true;
+                boolean isChunkUnloading = (chunk == null);
+
+                if (!isChunkUnloading) {
+                    long packed = ChunkPos.asLong(cx, cz);
+                    if (provider.droppedChunks.contains(packed)) {
+                        isChunkUnloading = true;
+                    }
                 }
-            }
 
-            if (!isChunkUnloading) {
-                RadarDataManager.INSTANCE.removeMachine(world, pos.getX(), pos.getZ());
+                if (!isChunkUnloading) {
 
-                if (WFCore.DEBUG)
-                    WFCore.LOGGER.info("Confirmed removal at {} - Chunk is live.", pos);
-            } else {
-                if (WFCore.DEBUG)
-                    WFCore.LOGGER.info("Persisting data for {} - Chunk is unloading.", pos);
+                    if (world.isAirBlock(pos) || !MultiblockRadarLogic.isOnTEWhitelist(world.getTileEntity(pos))) {
+                        RadarDataManager.INSTANCE.removeMachine(world, pos.getX(), pos.getZ());
+
+                        if (WFCore.DEBUG)
+                            WFCore.LOGGER.info("Confirmed removal at {} [Dim: {}] - Block is AIR or INVALID.",
+                                    pos.toString(), world.provider.getDimension());
+                    } else {
+                        if (WFCore.DEBUG)
+                            WFCore.LOGGER.info("Persisting data for {} [Dim: {}] - Block still exists, ignoring removal.",
+                                    pos.toString(), world.provider.getDimension());
+                    }
+                } else {
+                    if (WFCore.DEBUG)
+                        WFCore.LOGGER.info("Persisting data for {} [Dim: {}] - Chunk is unloading.",
+                                pos.toString(), world.provider.getDimension());
+                }
             }
         }
     }

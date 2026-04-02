@@ -6,14 +6,12 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
 import net.minecraft.world.storage.WorldSavedData;
+import wfcore.WFCore;
 
 public class RadarDataManager {
 
-    private static final String DATA_NAME = "wf_radar_registry";
     public static final RadarDataManager INSTANCE = new RadarDataManager();
-    @Getter
-    private final Long2IntOpenHashMap machineMap = new Long2IntOpenHashMap(50000);
-    private PersistenceHandler storageHandler;
+    private static final String DATA_NAME = "wf_radar_registry";
 
     private RadarDataManager() {
     }
@@ -22,35 +20,48 @@ public class RadarDataManager {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
+    public PersistenceHandler getHandler(World world) {
+        if (world.isRemote) return null;
+
+        var storage = world.getMapStorage();
+        PersistenceHandler handler = (PersistenceHandler) storage.getOrLoadData(PersistenceHandler.class, DATA_NAME);
+
+        if (handler == null) {
+            handler = new PersistenceHandler(DATA_NAME);
+            storage.setData(DATA_NAME, handler);
+        }
+        return handler;
+    }
+
     public void addMachine(World world, int x, int z, int value) {
-        machineMap.put(pack(x, z), value);
-        markDirty(world);
+        PersistenceHandler handler = getHandler(world);
+        if (handler != null) {
+            int r = handler.getMachineMap().put(pack(x, z), value);
+            if(WFCore.DEBUG && r != 0)
+                WFCore.LOGGER.warn("Tried to add duplicate for {} {}", x,z);
+            handler.markDirty();
+        }
     }
 
     public void removeMachine(World world, int x, int z) {
-        if (machineMap.remove(pack(x, z)) != 0) {
-            markDirty(world);
+        PersistenceHandler handler = getHandler(world);
+        if (handler != null) {
+            if (handler.getMachineMap().remove(pack(x, z)) != 0) {
+                handler.markDirty();
+            }
         }
     }
-
-
-    private void markDirty(World world) {
-        if (storageHandler == null) init(world);
-        storageHandler.markDirty();
-    }
-
-    public void init(World world) {
-        var storage = world.getMapStorage();
-        this.storageHandler = (PersistenceHandler) storage.getOrLoadData(PersistenceHandler.class, DATA_NAME);
-
-        if (this.storageHandler == null) {
-            this.storageHandler = new PersistenceHandler(DATA_NAME);
-            storage.setData(DATA_NAME, this.storageHandler);
+    public boolean hasMachine(World world, int x, int z) {
+        PersistenceHandler handler = getHandler(world);
+        if (handler != null) {
+            return handler.getMachineMap().containsKey(pack(x, z));
         }
+        return false;
     }
 
-
-    private static class PersistenceHandler extends WorldSavedData {
+    public static class PersistenceHandler extends WorldSavedData {
+        @Getter
+        private final Long2IntOpenHashMap machineMap = new Long2IntOpenHashMap(1000);
 
         public PersistenceHandler(String name) {
             super(name);
@@ -58,32 +69,25 @@ public class RadarDataManager {
 
         @Override
         public void readFromNBT(NBTTagCompound nbt) {
-            Long2IntOpenHashMap map = RadarDataManager.INSTANCE.getMachineMap();
-            map.clear();
+            machineMap.clear();
             NBTTagList list = nbt.getTagList("machines", 10);
             for (int i = 0; i < list.tagCount(); i++) {
                 NBTTagCompound tag = list.getCompoundTagAt(i);
-                map.put(tag.getLong("p"), tag.getInteger("v"));
+                machineMap.put(tag.getLong("p"), tag.getInteger("v"));
             }
         }
 
         @Override
         public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
             NBTTagList list = new NBTTagList();
-            var iterator = RadarDataManager.INSTANCE.getMachineMap().long2IntEntrySet().iterator();
-
-            while (iterator.hasNext()) {
-                var entry = iterator.next();
+            for (var entry : machineMap.long2IntEntrySet()) {
                 NBTTagCompound tag = new NBTTagCompound();
                 tag.setLong("p", entry.getLongKey());
                 tag.setInteger("v", entry.getIntValue());
                 list.appendTag(tag);
             }
-
             nbt.setTag("machines", list);
             return nbt;
         }
     }
-
-
 }
