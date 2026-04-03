@@ -16,6 +16,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.api.radar.RadarTargetIdentifier;
 
 import javax.annotation.Nullable;
@@ -129,12 +130,14 @@ public class RadarProbe extends BaseItem {
             gtMeta = mte.getMetaTileEntity().metaTileEntityId.toString();
 
         String block = ForgeRegistries.BLOCKS.getKey(targState.getBlock()).toString();
+        boolean isSharedID = teResource.equals(block);
+        boolean isWhitelisted = MultiblockRadarLogic.isOnTEWhitelist(targTE);
 
         // send the display name
         // Priority 1: GregTech MTE Check
         if (targTE instanceof IGregTechTileEntity ) {
             player.sendMessage(new TextComponentString("\nTarget is a: ").setStyle(new Style().setColor(TextFormatting.GOLD))
-                    .appendSibling(new TextComponentString("GregTech MetaTileEntity").setStyle(new Style().setColor(TextFormatting.YELLOW).setBold(true))));
+                    .appendSibling(new TextComponentString("GregTech MetaTileEntity").setStyle(new Style().setColor(TextFormatting.YELLOW))));
 
             player.sendMessage(new TextComponentString("Meta Tile ID: ").setStyle(new Style().setColor(TextFormatting.GOLD))
                     .appendSibling(new TextComponentString(gtMeta).setStyle(new Style().setColor(TextFormatting.WHITE))));
@@ -151,10 +154,21 @@ public class RadarProbe extends BaseItem {
         player.sendMessage(new TextComponentString("Target's Block ID is:").setStyle(new Style().setColor(TextFormatting.GRAY)));
         player.sendMessage(new TextComponentString(block).setStyle(new Style().setColor(TextFormatting.AQUA)));
 
+        if (!isSharedID) {
+            player.sendMessage(new TextComponentString("⚠ WARNING: TE/Block ID Mismatch!").setStyle(new Style().setColor(TextFormatting.RED).setBold(true)));
+            player.sendMessage(new TextComponentString("Suggestion: Use the 'State' option in config to ensure correct identification.")
+                    .setStyle(new Style().setColor(TextFormatting.YELLOW).setItalic(true)));
+        }
         player.sendMessage(new TextComponentString(""));
         player.sendMessage(new TextComponentString("Radar Target Identifier result: "));
         player.sendMessage(new TextComponentString(RadarTargetIdentifier.getBestIdentifier(targTE).toString()).setStyle(new Style().setColor(TextFormatting.BLUE)));
         player.sendMessage(new TextComponentString(""));
+
+        if (isWhitelisted) {
+            player.sendMessage(new TextComponentString("✔ Already in Config").setStyle(new Style().setColor(TextFormatting.DARK_GREEN)));
+        } else {
+            player.sendMessage(new TextComponentString("✖ Not in Radar Config").setStyle(new Style().setColor(TextFormatting.RED)));
+        }
 
         return EnumActionResult.SUCCESS;
     }
