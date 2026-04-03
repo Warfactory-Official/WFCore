@@ -1,5 +1,6 @@
 package wfcore.common.items;
 
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityList;
@@ -12,6 +13,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.*;
 import net.minecraft.world.IWorldNameable;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import wfcore.api.radar.RadarTargetIdentifier;
@@ -121,60 +123,34 @@ public class RadarProbe extends BaseItem {
             return EnumActionResult.PASS;
         }
 
-        // show the display name, which is guaranteed to be present by TileEntity
-        ITextComponent targTEDisplayName = targTE.getDisplayName();
-        String displayNameKey = "NULL";
-        String formattedDisplayName = "NULL";
+        String teResource = TileEntity.getKey(targTE.getClass()).toString();
+        String gtMeta = "NULL";
+        if(targTE instanceof IGregTechTileEntity mte)
+            gtMeta = mte.getMetaTileEntity().metaTileEntityId.toString();
 
-        // get the te resource for later display
-        ResourceLocation teResource = TileEntity.getKey(targTE.getClass());
-        if (teResource == null) {
-            teResource = new ResourceLocation("NULL");
-        } else if (teResource.toString().length() < 1) {
-            teResource = new ResourceLocation("EMPTY");
-        }
-
-        // try to get a more interesting display name
-        if (targTEDisplayName != null) {
-            // get the default values for the raw display name
-            formattedDisplayName = targTEDisplayName.getFormattedText();
-            displayNameKey = targTEDisplayName.getUnformattedComponentText();
-
-            // we want to use the key in most cases, not the translated name
-            if (targTEDisplayName instanceof TextComponentTranslation translatable) {
-                displayNameKey = translatable.getKey();
-
-                // display the transformation if there is formatting to be done
-                if (translatable.getFormatArgs().length > 0) {
-                    displayNameKey += "\n->\n" + String.format(translatable.getKey(), translatable.getFormatArgs());
-                }
-            }
-        }
+        String block = ForgeRegistries.BLOCKS.getKey(targState.getBlock()).toString();
 
         // send the display name
-        player.sendMessage(new TextComponentString("\nTarget's display name is:"));
-        player.sendMessage(new TextComponentString(formattedDisplayName).setStyle(new Style().setColor(TextFormatting.AQUA)));
-        player.sendMessage(new TextComponentString("\nTarget's resource location is:"));
-        player.sendMessage(new TextComponentString(teResource.toString()).setStyle(new Style().setColor(TextFormatting.AQUA)));
-        player.sendMessage(new TextComponentString("\nTarget's unformatted name is:"));
-        player.sendMessage(new TextComponentString(displayNameKey).setStyle(new Style().setColor(TextFormatting.AQUA)));
+        // Priority 1: GregTech MTE Check
+        if (targTE instanceof IGregTechTileEntity ) {
+            player.sendMessage(new TextComponentString("\nTarget is a: ").setStyle(new Style().setColor(TextFormatting.GOLD))
+                    .appendSibling(new TextComponentString("GregTech MetaTileEntity").setStyle(new Style().setColor(TextFormatting.YELLOW).setBold(true))));
 
-        // see if there is a raw name which might be more appropriate
-        if (targTE instanceof IWorldNameable nameableTE) {
-            // get the actual nameable text with a default value
-            TextComponentString nameableText = new TextComponentString("NULL");
-            if (nameableTE.getName().length() > 0) {
-                nameableText = new TextComponentString(nameableTE.getName());
-            }
-
-            // send to the player
-            player.sendMessage(new TextComponentString("\nTarget is nameable with raw name:"));
-            player.sendMessage(nameableText.setStyle(new Style().setColor(TextFormatting.AQUA)));
+            player.sendMessage(new TextComponentString("Meta Tile ID: ").setStyle(new Style().setColor(TextFormatting.GOLD))
+                    .appendSibling(new TextComponentString(gtMeta).setStyle(new Style().setColor(TextFormatting.WHITE))));
         } else {
-            player.sendMessage(new TextComponentString("\nTarget does not implement nameable interface."));
+            player.sendMessage(new TextComponentString("\nTarget is a: ").setStyle(new Style().setColor(TextFormatting.DARK_AQUA))
+                    .appendSibling(new TextComponentString("Standard TileEntity").setStyle(new Style().setColor(TextFormatting.AQUA))));
         }
 
-        // new line
+        // Priority 2: TE Registry Name
+        player.sendMessage(new TextComponentString("Target's TE's resource location is:").setStyle(new Style().setColor(TextFormatting.GRAY)));
+        player.sendMessage(new TextComponentString(teResource).setStyle(new Style().setColor(TextFormatting.AQUA)));
+
+        // Priority 3: Block Registry Name
+        player.sendMessage(new TextComponentString("Target's Block ID is:").setStyle(new Style().setColor(TextFormatting.GRAY)));
+        player.sendMessage(new TextComponentString(block).setStyle(new Style().setColor(TextFormatting.AQUA)));
+
         player.sendMessage(new TextComponentString(""));
         player.sendMessage(new TextComponentString("Radar Target Identifier result: "));
         player.sendMessage(new TextComponentString(RadarTargetIdentifier.getBestIdentifier(targTE).toString()).setStyle(new Style().setColor(TextFormatting.BLUE)));

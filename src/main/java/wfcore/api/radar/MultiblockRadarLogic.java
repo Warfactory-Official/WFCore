@@ -1,7 +1,9 @@
 package wfcore.api.radar;
 
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.*;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -13,7 +15,6 @@ import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.jetbrains.annotations.NotNull;
 import org.yaml.snakeyaml.Yaml;
-import test.RadarClusteringEngine;
 import wfcore.WFCore;
 import wfcore.api.util.math.ClusterData;
 import wfcore.api.util.math.IntCoord2;
@@ -21,7 +22,6 @@ import wfcore.api.util.math.BoundingBox;
 import wfcore.common.managers.RadarDataManager;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 
-import javax.xml.crypto.Data;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,17 +53,14 @@ public class MultiblockRadarLogic {
 
     private static final List<String> EXAMPLE_YAML = List.of(
             "# Controls basic radar functionality",
-            "# Supports various types of targets divided into named categories of varying \"brightness\" to radars.",
-            "blocks:",
-            " - category: dim",
-            "   intensity: 1",
-            "   targets:",
-            "     - container:furnace",
-            " - category: bright",
-            "   intensity: 10",
-            "   targets:",
-            "     - gregtech:machine.energy_hatch.input.lv.name",
-            "     - hbm:tileentity_bobble"
+            "TileEntity:",
+            " - RegName: gregtech:cutter.uv # Example with GT MetaID",
+            "   value: 10",
+            " - RegName: minecraft:furnace # Vanilla Example",
+            "   value: 1",
+            " - RegName: hbm:tileentity_charge # TE+Block Example",
+            "   State: hbm:charge_semtex",
+            "   value: 2"
     );
 
     // this may be useful eventually, but currently handling each mod's method of registering tile entities is too involved
@@ -94,25 +91,17 @@ public class MultiblockRadarLogic {
         WFCore.LOGGER.atDebug().log("Finished reading radar config");
     }
 
+
+
     private static void populateWhitelist(
             ObjectOpenHashSet<RadarTargetIdentifier> whitelist,
             List<Map<String, Object>> targetContainer) {
-        if (targetContainer == null) { return; }  // handle empty config
-
-        for (Map<String, Object> category : targetContainer) {
-            // get the current categories intensity and ensure an entry exists for it
-            int intensity = ((Number)category.get("intensity")).intValue();
-
-            // parse all the targets
-            for (String target : (List<String>) category.get("targets")) {
-                var identifier = new RadarTargetIdentifier(target);
-                if (whitelist.contains(identifier)) {
-                    WFCore.LOGGER.atInfo().log("Found duplicate instance of identifier " + identifier);
-                    continue;
-                }
-
-                whitelist.add(identifier.intensity(intensity));
-            }
+        if (targetContainer == null) return;
+        for (Map<String, Object> entry : targetContainer) {
+            String regName = (String) entry.get("RegName");
+            int value = ((Number) entry.getOrDefault("value", 1)).intValue();
+            String stateStr = (String) entry.get("State");
+            whitelist.add(new RadarTargetIdentifier(regName,stateStr).intensity(value));
         }
     }
 

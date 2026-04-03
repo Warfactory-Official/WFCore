@@ -1,13 +1,14 @@
 package wfcore.api.radar;
 
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import wfcore.WFCore;
 
 import java.util.Objects;
@@ -15,11 +16,14 @@ import java.util.Objects;
 public class RadarTargetIdentifier {
     @NotNull
     public final String id;
+    @Nullable
+    public final String blockState;
 
     public int intensity = 0;
 
-    public RadarTargetIdentifier(@NotNull String id) {
+    public RadarTargetIdentifier(@NotNull String id, @Nullable String blockState) {
         this.id = id;
+        this.blockState = blockState;
     }
 
     public RadarTargetIdentifier intensity(int intensity) {
@@ -54,7 +58,7 @@ public class RadarTargetIdentifier {
         if (other == this) { return true; }
 
         if (other instanceof RadarTargetIdentifier identifier) {
-            return Objects.equals(id, identifier.id);
+            return this.blockState == null ? Objects.equals(id, identifier.id) : Objects.equals(id, identifier.id) && Objects.equals(blockState, identifier.blockState);
         }
 
         return false;
@@ -65,56 +69,34 @@ public class RadarTargetIdentifier {
         return id.hashCode();
     }
 
-    // parses block state strings to pick out properties and separate from resource location
-    public static RadarTargetIdentifier fromBlockState(IBlockState state) {
-        ResourceLocation stateBlockResource = state.getBlock().getRegistryName();
-        if (stateBlockResource == null || stateBlockResource.toString().length() < 1) {
-            String status = stateBlockResource == null ? "no" : "empty";
-            WFCore.LOGGER.atError().log("Got a state with " + status + " resource location: " + state);
-            stateBlockResource = new ResourceLocation(state.getBlock().getClass().getName());
-        }
-
-        return new RadarTargetIdentifier(stateBlockResource.toString());
-    }
-
     // will try, in increasing preference, the blockstate string, then the resource location, then display name string if possible
+    /*
+    Data ranked based on priority
+    1. GT metaID
+    2. TE ID
+    3. TE ID + blockstate (if blockstate is specified)
+
+
+     */
     public static RadarTargetIdentifier getBestIdentifier(TileEntity targetTE) {
-        // get the targeted TE and try to pull the display name
+        String identifier;
+        String serializedBlockState = null;
         ResourceLocation teResource = TileEntity.getKey(targetTE.getClass());
-        ITextComponent targTEDisplayName = targetTE.getDisplayName();
-        String displayNameKey = null;
-
-        // try to get a more interesting display name
-        if (targTEDisplayName != null) {
-            // get the default values for the raw display name
-            displayNameKey = targTEDisplayName.getUnformattedComponentText();
-
-            // we want to use the key in most cases, not the translated name
-            if (targTEDisplayName instanceof TextComponentTranslation translatable) {
-                displayNameKey = translatable.getKey();
-
-                // display the transformation if there is formatting to be done
-                if (translatable.getFormatArgs().length > 0) {
-                    displayNameKey += "\n->\n" + String.format(translatable.getKey(), translatable.getFormatArgs());
-                }
-            }
+        IBlockState state = targetTE.getWorld().getBlockState(targetTE.getPos());
+        //GT metadata is our best bet
+        if(targetTE instanceof IGregTechTileEntity mte){
+            identifier = mte.getMetaTileEntity().metaTileEntityId.toString();
+        }
+        else {
+            //NonGT stuff is a lot less fancy
+            identifier = teResource.toString();
+            serializedBlockState = Objects.requireNonNull(ForgeRegistries.BLOCKS.getKey(state.getBlock())).toString();
         }
 
-        // try the displayNameKey first if it isn't null
-        if (displayNameKey != null) {
-            return new RadarTargetIdentifier(displayNameKey);
-        }
-
-        // if we have no display name and no resource, then we just have to go by block
-        if (teResource == null || teResource.toString().length() < 1) {
-            String status = teResource == null ? "no" : "empty";
-            WFCore.LOGGER.atError().log("Got a tile entity with " + status + " resource location: " + targetTE);
-            return new RadarTargetIdentifier(targetTE.getClass().getName());
-        }
-
-        // return just the tile entity resource key
-        return new RadarTargetIdentifier(teResource.toString());
+        return new RadarTargetIdentifier(identifier,  serializedBlockState);
     }
+
+
 
     public static RadarTargetIdentifier getBestIdentifier(Entity target) {
         // get the entity key
@@ -128,6 +110,6 @@ public class RadarTargetIdentifier {
             entityKey = new ResourceLocation(target.getClass().getName());
         }
 
-        return new RadarTargetIdentifier(entityKey.toString());
+        return new RadarTargetIdentifier(entityKey.toString(), null );
     }
 }

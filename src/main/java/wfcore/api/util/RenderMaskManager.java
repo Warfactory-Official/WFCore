@@ -33,7 +33,7 @@ public class RenderMaskManager {
 
     // Set to true to see red boxes in the world where blocks are masked.
     public static boolean debugMode = false;
-    public static boolean aabbDebug = true;
+    public static boolean aabbDebug = false;
 
     public static void removeDisableModel(BlockPos controllerPos, boolean updateRendering) {
         Collection<BlockPos> poses = multiDisabled.remove(controllerPos);
