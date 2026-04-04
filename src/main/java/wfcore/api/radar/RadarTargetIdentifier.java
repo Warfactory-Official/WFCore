@@ -1,6 +1,8 @@
 package wfcore.api.radar;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import it.unimi.dsi.fastutil.HashCommon;
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -66,7 +68,9 @@ public class RadarTargetIdentifier {
 
     @Override
     public int hashCode() {
-        return id.hashCode();
+        int result = id.hashCode();
+        result = 31 * result + (blockState != null ? blockState.hashCode() : 0);
+        return HashCommon.mix(result);
     }
 
     // will try, in increasing preference, the blockstate string, then the resource location, then display name string if possible
@@ -90,10 +94,14 @@ public class RadarTargetIdentifier {
         else {
             //NonGT stuff is a lot less fancy
             identifier = teResource.toString();
-            serializedBlockState = Objects.requireNonNull(ForgeRegistries.BLOCKS.getKey(state.getBlock())).toString();
+            ResourceLocation block = Objects.requireNonNull(ForgeRegistries.BLOCKS.getKey(state.getBlock()));
+            if(!teResource.equals(block)){
+                serializedBlockState  = block.toString();
+            }
         }
 
         return new RadarTargetIdentifier(identifier,  serializedBlockState);
+
     }
 
 

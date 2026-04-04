@@ -82,7 +82,7 @@ public class MultiblockRadarLogic {
         }
 
         // interpret the file
-        List<Map<String, Object>> blocks = (List<Map<String, Object>>) globalRadarData.get("blocks");
+        List<Map<String, Object>> blocks = (List<Map<String, Object>>) globalRadarData.get("TileEntity");
         List<Map<String, Object>> entities = (List<Map<String, Object>>) globalRadarData.get("entities");
 
         populateWhitelist(TE_WHITELIST, blocks);
