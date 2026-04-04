@@ -6,7 +6,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import wfcore.Tags;
+import wfcore.Reference;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.api.metatileentity.MteRenderer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
@@ -25,7 +25,7 @@ public class TERegistry {
     public static void registerRenderers() {
         ClientRegistry.bindTileEntitySpecialRenderer(AnimatablePartTileEntity.class, new AnimatablePartRenderer());
         registerRenderer(MetaTileEntityRadar.class, new GenericGLTF<>(
-                new ResourceLocation(Tags.MODID, "model/radar.gltf")
+                new ResourceLocation(Reference.MODID, "model/radar.gltf")
         ));
 
 

@@ -4,7 +4,7 @@ import com.modularmods.mcgltf.MCglTF;
 import gregtech.api.metatileentity.MetaTileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.animation.Animation;
-import wfcore.Tags;
+import wfcore.Reference;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.api.metatileentity.MteRenderer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;

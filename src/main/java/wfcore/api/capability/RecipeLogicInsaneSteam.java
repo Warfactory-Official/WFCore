@@ -228,7 +228,7 @@ public class RecipeLogicInsaneSteam extends AbstractRecipeLogic implements IVent
     }
 
     @Override
-    protected boolean hasEnoughPower(int @NotNull [] resultOverclock) {
+    protected boolean hasEnoughPower(int[] resultOverclock) {
         int totalSteam = (int) (resultOverclock[0] * resultOverclock[1] / conversionRate);
         if (totalSteam > 0) {
             long steamStored = getEnergyStored();

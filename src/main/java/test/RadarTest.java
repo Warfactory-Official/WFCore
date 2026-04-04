@@ -2,6 +2,8 @@ package test;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.jetbrains.annotations.TestOnly;
+import org.junit.jupiter.api.Test;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -16,7 +18,7 @@ import static test.RadarClusteringEngine.*;
 
 public class RadarTest {
     // Example of how clean your testing will look now:
-    @org.junit.Test
+    @Test
     public void testBaseDetection() {
         Map<IntCoord2, DataPoint> mockWorld = new HashMap<>();
         Gson gson = new GsonBuilder()

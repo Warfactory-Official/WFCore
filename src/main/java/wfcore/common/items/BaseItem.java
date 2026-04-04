@@ -12,7 +12,7 @@ import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.model.IModel;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
-import wfcore.Tags;
+import wfcore.Reference;
 import wfcore.api.SelfRegisteringModel;
 
 public class BaseItem extends Item implements SelfRegisteringModel {
@@ -39,7 +39,7 @@ public class BaseItem extends Item implements SelfRegisteringModel {
     public void bakeModel(ModelBakeEvent event) {
         try {
             IModel baseModel = ModelLoaderRegistry.getModel(new ResourceLocation("minecraft", "item/generated"));
-            ResourceLocation spriteLoc = new ResourceLocation(Tags.MODID, ROOT_PATH + texturePath);
+            ResourceLocation spriteLoc = new ResourceLocation(Reference.MODID, ROOT_PATH + texturePath);
             IModel retexturedModel = baseModel.retexture(
                     ImmutableMap.of(
                             "layer0", spriteLoc.toString()
@@ -58,11 +58,11 @@ public class BaseItem extends Item implements SelfRegisteringModel {
 
     @Override
     public void registerModel() {
-        ModelLoader.setCustomModelResourceLocation(this, 0, new ModelResourceLocation(new ResourceLocation(Tags.MODID, ROOT_PATH + texturePath), "inventory"));
+        ModelLoader.setCustomModelResourceLocation(this, 0, new ModelResourceLocation(new ResourceLocation(Reference.MODID, ROOT_PATH + texturePath), "inventory"));
     }
 
     @Override
     public void registerSprite(TextureMap map) {
-        map.registerSprite(new ResourceLocation(Tags.MODID, ROOT_PATH + texturePath));
+        map.registerSprite(new ResourceLocation(Reference.MODID, ROOT_PATH + texturePath));
     }
 }

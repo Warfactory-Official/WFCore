@@ -63,7 +63,7 @@ public class RegistryEvents {
         IForgeRegistry<Item> registry = event.getRegistry();
         ItemRegistry.ITEMS.forEach(registry::register);
         for (Block block : BlockRegistry.BLOCKS) {
-            Function<Block, ItemBlock> producer = _ ->
+            Function<Block, ItemBlock> producer = unused ->
                     block instanceof VariantBlock<?>
                             ? createVariantItemBlockUnchecked((VariantBlock<?>) block)
                             : new ItemBlock(block);

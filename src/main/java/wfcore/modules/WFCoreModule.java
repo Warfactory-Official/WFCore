@@ -5,13 +5,13 @@ import gregtech.api.modules.GregTechModule;
 import gregtech.api.modules.IGregTechModule;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import wfcore.Tags;
+import wfcore.Reference;
 import wfcore.WFCore;
 import wfcore.common.network.SPacketUpdateRenderMask;
 
 @GregTechModule(
         moduleID = "warfactory_core",
-        containerID = Tags.MODID,
+        containerID = Reference.MODID,
         name = "Warfactory 2 Core",
         description = "Warfactory 2 core module",
         coreModule = true)

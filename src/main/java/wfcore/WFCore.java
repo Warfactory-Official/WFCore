@@ -14,12 +14,12 @@ import wfcore.common.network.SPacketUpdateRenderMask;
 import wfcore.common.proxy.CommonProxy;
 import wfcore.modules.WFCoreModule;
 
-@Mod(modid = Tags.MODID, version = Tags.VERSION, name = Tags.MODNAME, acceptedMinecraftVersions = "[1.12.2]",
+@Mod(modid = wfcore.Reference.MODID, version = wfcore.Reference.VERSION, name = wfcore.Reference.MODNAME, acceptedMinecraftVersions = "[1.12.2]",
         dependencies = "after:hbm;after:mcheli;required-before:gregtech;required-after-client:mcgltf;required-client:ctm"
 
 )
 public class WFCore {
-    public static final Logger LOGGER = LogManager.getLogger(Tags.MODID);
+    public static final Logger LOGGER = LogManager.getLogger(wfcore.Reference.MODID);
     public static final String MODID = "wfcore";
     public static final boolean DEBUG = true;
 
