@@ -43,6 +43,14 @@ public class RadarDataManager {
         }
     }
 
+    public void addMachine(World world, long packed, int value) {
+        PersistenceHandler handler = getHandler(world);
+        if (handler != null) {
+            int r = handler.getMachineMap().put(packed, value);
+            handler.markDirty();
+        }
+    }
+
     public void removeMachine(World world, int x, int z) {
         PersistenceHandler handler = getHandler(world);
         if (handler != null) {

@@ -1,32 +1,31 @@
 package wfcore.common.world;
 
-import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.RegionFile;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import wfcore.WFCore;
+import wfcore.api.radar.MultiblockRadarLogic;
+import wfcore.api.radar.RadarTargetIdentifier;
+import wfcore.common.managers.RadarDataManager;
 
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.concurrent.ExecutorService;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
-import net.minecraft.world.chunk.storage.RegionFile;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTTagCompound;
 
 public class Retrofitter {
 
-   public static boolean active = false;
-   public static final Retrofitter INSTANCE = new Retrofitter();
-
-    // Adjust this to control scan speed. 1-3 is safe. 5+ may lag heavy modpacks.
+    public static final Retrofitter INSTANCE = new Retrofitter();
     private static final int CHUNKS_PER_TICK = 5;
+    public static boolean active = false;
+
+    public final Queue<Combined> queue = new ConcurrentLinkedQueue<>();
 
     @SubscribeEvent
     public void onWorldTick(TickEvent.WorldTickEvent event) {
@@ -36,115 +35,116 @@ public class Retrofitter {
         if (world.provider.getDimension() != 0) return;
 
         for (int i = 0; i < CHUNKS_PER_TICK; i++) {
-            long packed = pollFromSet();
-
-            if (packed == Long.MIN_VALUE) break;
-
-            int cx = (int) (packed >> 32);
-            int cz = (int) packed;
-
-            wakeChunk(world, cx, cz);
+            Combined d = queue.poll();
+            if (d == null) {
+                active = false;
+                break;
+            }
+            RadarDataManager.INSTANCE.addMachine(world, d.packed, d.value);
         }
     }
-    private synchronized long pollFromSet() {
 
-        if (queue.isEmpty()) return Long.MIN_VALUE;
+    public void startGlobalScan(File region) {
+        active = true;
+        File[] files = region.listFiles((dir, name) -> name.endsWith(".mca"));
+        if (files == null) return;
 
-        long val = queue.iterator().nextLong();
-        queue.remove(val);
-        return val;
-    }
+        WFCore.LOGGER.info("Starting Virtual Thread background scan...");
 
-    private void wakeChunk(WorldServer world, int cx, int cz) {
-        boolean wasLoaded = world.getChunkProvider().chunkExists(cx, cz);
-
-        net.minecraft.world.chunk.Chunk chunk = world.getChunkProvider().loadChunk(cx, cz);
-
-        if (chunk != null && !wasLoaded) {
-            world.getChunkProvider().queueUnload(chunk);
-
-            if (WFCore.DEBUG) {
-                WFCore.LOGGER.info("Woke and queued unload for chunk at [{}, {}]", cx, cz);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (File mcaFile : files) {
+                executor.submit(() -> scanRegionFile(mcaFile));
             }
         }
     }
-
-        public final LongOpenHashSet queue = new LongOpenHashSet();
-
-    private final int threads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
-    private final ExecutorService executor = Executors.newFixedThreadPool(threads);
-
-   public void startGlobalScan(File region){
-       active = true;
-       File[] files = region.listFiles((dir, name) -> name.endsWith(".mca"));
-       if (files == null) return;
-
-       WFCore.LOGGER.info("Starting background radar scan on {} threads...", threads);
-
-       for (File mcaFile : files) {
-           executor.submit(() -> {
-               scanRegionFile(mcaFile);
-           });
-       }
-
-       executor.shutdown();
-   }
-
 
     public void scanRegionFile(File mcaFile) {
         String[] parts = mcaFile.getName().split("\\.");
         if (parts.length < 3) return;
 
-        int regX = Integer.parseInt(parts[1]);
-        int regZ = Integer.parseInt(parts[2]);
-
         RegionFile region = null;
         try {
             region = new RegionFile(mcaFile);
-
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
                     if (region.chunkExists(x, z)) {
-                        try (DataInputStream dis = region.getChunkDataInputStream(x, z)) {
-                            if (dis != null) {
-                                NBTTagCompound nbt = CompressedStreamTools.read(dis);
-                                processChunkNBT(nbt, x, z, regX, regZ);
-                            }
-                        } catch (Exception e) {
-                            WFCore.LOGGER.error("Failed to read chunk NBT in " + mcaFile.getName(), e);
-                        }
+                        processChunk(region, x, z);
                     }
                 }
             }
         } catch (Exception e) {
-            WFCore.LOGGER.error("Error accessing region file: " + mcaFile.getName(), e);
+            WFCore.LOGGER.error("Failed to parse region: " + mcaFile.getName(), e);
         } finally {
             if (region != null) {
                 try {
                     region.close();
-                } catch (IOException e) {
-                    WFCore.LOGGER.error("Failed to close RegionFile: " + mcaFile.getName());
+                } catch (IOException ignored) {
                 }
             }
         }
     }
 
-    private void processChunkNBT(NBTTagCompound nbt, int localX, int localZ, int regX, int regZ) {
+    private void processChunk(RegionFile region, int x, int z) throws Exception {
+        try (DataInputStream dis = region.getChunkDataInputStream(x, z)) {
+            if (dis == null) return;
+            NBTTagCompound nbt = CompressedStreamTools.read(dis);
+            processChunkNBT(nbt);
+        }
+    }
+
+    private void processChunk(RegionFile region, int x, int z, int regX, int regZ) throws Exception {
+        try (DataInputStream dis = region.getChunkDataInputStream(x, z)) {
+            if (dis == null) return;
+            NBTTagCompound nbt = CompressedStreamTools.read(dis);
+            processChunkNBT(nbt);
+        }
+    }
+
+    private void processChunkNBT(NBTTagCompound nbt) {
         NBTTagCompound level = nbt.getCompoundTag("Level");
         NBTTagList teList = level.getTagList("TileEntities", 10);
-
         if (teList.tagCount() == 0) return;
 
+        NBTTagList sections = level.getTagList("Sections", 10);
+
         for (int i = 0; i < teList.tagCount(); i++) {
-                int worldChunkX = (regX * 32) + localX;
-                int worldChunkZ = (regZ * 32) + localZ;
+            NBTTagCompound teNbt = teList.getCompoundTagAt(i);
+            int y = teNbt.getInteger("y");
 
-                long packed = (long) worldChunkX << 32 | (worldChunkZ & 0xFFFFFFFFL);
+            NBTTagCompound section = findSection(sections, y >> 4);
+            if (section == null) continue;
 
-                synchronized (queue) {
-                    queue.add(packed);
-                }
-                break;
+            int blockIndex = ((y & 15) << 8) | ((teNbt.getInteger("z") & 15) << 4) | (teNbt.getInteger("x") & 15);
+            int blockId = getBlockIdFromSection(section, blockIndex);
+
+            RadarTargetIdentifier identifier = RadarTargetIdentifier.getBestIdentifier(teNbt, blockId);
+
+            if (MultiblockRadarLogic.TE_WHITELIST.contains(identifier)) {
+                int value = MultiblockRadarLogic.getValue(identifier);
+                queue.add(new Combined(RadarDataManager.pack(teNbt.getInteger("x"), teNbt.getInteger("z")), value));
+            }
         }
+    }
+
+    private NBTTagCompound findSection(NBTTagList sections, int sectionY) {
+        for (int i = 0; i < sections.tagCount(); i++) {
+            NBTTagCompound s = sections.getCompoundTagAt(i);
+            if (s.getByte("Y") == sectionY) return s;
+        }
+        return null;
+    }
+
+    private int getBlockIdFromSection(NBTTagCompound section, int index) {
+        byte[] blocks = section.getByteArray("Blocks");
+        int id = blocks[index] & 0xFF;
+        if (section.hasKey("Add", 7)) {
+            byte[] add = section.getByteArray("Add");
+            int addVal = (add[index >> 1] >> ((index & 1) << 2)) & 0xF;
+            id |= (addVal << 8);
+        }
+        return id;
+    }
+
+    public record Combined(long packed, int value) {
     }
 }

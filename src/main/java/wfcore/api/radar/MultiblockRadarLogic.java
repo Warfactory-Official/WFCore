@@ -186,6 +186,9 @@ public class MultiblockRadarLogic {
         RadarTargetIdentifier currId = RadarTargetIdentifier.getBestIdentifier(tileEntity);
         return TE_WHITELIST.get(currId).intensity;
     }
+    public static int getValue(RadarTargetIdentifier target) {
+        return TE_WHITELIST.get(target).intensity;
+    }
 
     static public IntCoord2 getCoordPair(BlockPos pos) {
         return new IntCoord2(pos);
