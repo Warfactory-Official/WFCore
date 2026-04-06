@@ -10,6 +10,8 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
@@ -165,10 +167,10 @@ public class MultiblockRadarLogic {
         //Scanner cannot perform a scan if data is already written
         if(true || !dataSlotIsEmpty() && !dataSlotIsWritten()){
             //Get the snapshot of all loaded players TEs
-            Map<IntCoord2,DataPoint> loadedValidObjects = this.collectValidEntites();
+            Map<IntCoord2,DataPoint> loadedValidObjects = collectValidEntites(metaTileEntity.getWorld());
             //Run dbscan
             //this.scanResults = clusterData;
-            calculateDBSCAN(loadedValidObjects).thenAccept(this::storeScanResult).exceptionally(ex -> {
+            calculateDBSCAN(loadedValidObjects, EPS, MIN_PTS).thenAccept(this::storeScanResult).exceptionally(ex -> {
                 System.err.println("Error during DBSCAN calculation: " + ex.getMessage());
                 return null;
             });
@@ -195,7 +197,7 @@ public class MultiblockRadarLogic {
     }
 
     //Collect snapshot of all players and valid TEs
-    private HashMap<IntCoord2, DataPoint> collectValidEntites() {
+    public static HashMap<IntCoord2, DataPoint> collectValidEntites(World world) {
         MinecraftServer serverInstance = FMLCommonHandler.instance().getMinecraftServerInstance();
         HashMap<IntCoord2, DataPoint> entityPosMap = new HashMap<>();
 
@@ -204,7 +206,7 @@ public class MultiblockRadarLogic {
             entityPosMap.put(getCoordPair(player.getPosition()), new DataPoint(TargetType.PLAYER,0));
         }
 
-        ObjectIterator<Long2IntMap.Entry> iterator = RadarDataManager.INSTANCE.getHandler(metaTileEntity.getWorld()).getMachineMap().long2IntEntrySet().iterator();
+        ObjectIterator<Long2IntMap.Entry> iterator = RadarDataManager.INSTANCE.getHandler(world).getMachineMap().long2IntEntrySet().iterator();
         while (iterator.hasNext()) {
             Long2IntMap.Entry entry = iterator.next();
             long packed = entry.getLongKey();
@@ -226,7 +228,7 @@ public class MultiblockRadarLogic {
     }
 
     //Note: players have no value
-    public record DataPoint(TargetType type, int value) {
+    public static record DataPoint(TargetType type, int value) {
     }
 
     ;
@@ -238,10 +240,10 @@ public class MultiblockRadarLogic {
     be ran async and must be done before the simulated scan is done (default time: 2000 seconds),
     values such as EPS and MIN_PTS should be adjustable in GUI by player.
      */
-    private CompletableFuture<List<ClusterData>> calculateDBSCAN(Map<IntCoord2, DataPoint> objMap) {
+    public static CompletableFuture<List<ClusterData>> calculateDBSCAN(Map<IntCoord2, DataPoint> objMap, int eps, int minPts) {
 
         return CompletableFuture.supplyAsync(() -> {
-            DBSCANClusterer<IntCoord2> dbscan = new DBSCANClusterer<>(EPS, MIN_PTS);
+            DBSCANClusterer<IntCoord2> dbscan = new DBSCANClusterer<>(eps, minPts);
 
             List<Cluster<IntCoord2>> clusters = dbscan.cluster(new ArrayList<>(objMap.keySet()));
 

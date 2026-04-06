@@ -15,7 +15,7 @@ import wfcore.common.proxy.CommonProxy;
 import wfcore.modules.WFCoreModule;
 
 @Mod(modid = wfcore.Reference.MODID, version = wfcore.Reference.VERSION, name = wfcore.Reference.MODNAME, acceptedMinecraftVersions = "[1.12.2]",
-        dependencies = "after:hbm;after:mcheli;required-before:gregtech;required-after-client:mcgltf;required-client:ctm"
+        dependencies = "after:hbm;required-before:gregtech;required-after-client:mcgltf;required-client:ctm"
 
 )
 public class WFCore {

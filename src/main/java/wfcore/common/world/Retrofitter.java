@@ -38,8 +38,10 @@ public class Retrofitter {
             Combined d = queue.poll();
             if (d == null) {
                 active = false;
+                WFCore.LOGGER.info("Retrofitter scan processing finished. Queue is empty.");
                 break;
             }
+            WFCore.LOGGER.info("[Server World] adding {}:{}", d.packed,d.value);
             RadarDataManager.INSTANCE.addMachine(world, d.packed, d.value);
         }
     }
@@ -47,15 +49,20 @@ public class Retrofitter {
     public void startGlobalScan(File region) {
         active = true;
         File[] files = region.listFiles((dir, name) -> name.endsWith(".mca"));
-        if (files == null) return;
+        if (files == null) {
+            WFCore.LOGGER.warn("No .mca files found to scan in {}", region.getAbsolutePath());
+            return;
+        }
 
-        WFCore.LOGGER.info("Starting Virtual Thread background scan...");
+        WFCore.LOGGER.info("Starting Virtual Thread background scan for {} region files...", files.length);
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             for (File mcaFile : files) {
                 executor.submit(() -> scanRegionFile(mcaFile));
             }
         }
+        
+        WFCore.LOGGER.info("Background scan tasks finished submitting. Total elements queued: {}", queue.size());
     }
 
     public void scanRegionFile(File mcaFile) {
@@ -63,50 +70,49 @@ public class Retrofitter {
         if (parts.length < 3) return;
 
         RegionFile region = null;
+        int chunkCount = 0;
+        int machineCount = 0;
         try {
+            WFCore.LOGGER.debug("Scanning region file: {}", mcaFile.getName());
             region = new RegionFile(mcaFile);
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
-                    if (region.chunkExists(x, z)) {
-                        processChunk(region, x, z);
+                    if (region.isChunkSaved(x, z)) {
+                        machineCount += processChunk(region, x, z);
+                        chunkCount++;
                     }
                 }
             }
+            WFCore.LOGGER.info("Processed region file: {} ({} chunks, found {} machines)", mcaFile.getName(), chunkCount, machineCount);
         } catch (Exception e) {
-            WFCore.LOGGER.error("Failed to parse region: " + mcaFile.getName(), e);
+            WFCore.LOGGER.error("Failed to parse region: {}", mcaFile.getName(), e);
         } finally {
             if (region != null) {
                 try {
                     region.close();
-                } catch (IOException ignored) {
+                } catch (IOException e) {
+                    WFCore.LOGGER.error("Failed to close region file: {}", mcaFile.getName(), e);
                 }
             }
         }
     }
 
-    private void processChunk(RegionFile region, int x, int z) throws Exception {
+    private int processChunk(RegionFile region, int x, int z) throws Exception {
         try (DataInputStream dis = region.getChunkDataInputStream(x, z)) {
-            if (dis == null) return;
+            if (dis == null) return 0;
             NBTTagCompound nbt = CompressedStreamTools.read(dis);
-            processChunkNBT(nbt);
+            return processChunkNBT(nbt);
         }
     }
 
-    private void processChunk(RegionFile region, int x, int z, int regX, int regZ) throws Exception {
-        try (DataInputStream dis = region.getChunkDataInputStream(x, z)) {
-            if (dis == null) return;
-            NBTTagCompound nbt = CompressedStreamTools.read(dis);
-            processChunkNBT(nbt);
-        }
-    }
-
-    private void processChunkNBT(NBTTagCompound nbt) {
+    private int processChunkNBT(NBTTagCompound nbt) {
         NBTTagCompound level = nbt.getCompoundTag("Level");
         NBTTagList teList = level.getTagList("TileEntities", 10);
-        if (teList.tagCount() == 0) return;
+        if (teList.tagCount() == 0) return 0;
 
         NBTTagList sections = level.getTagList("Sections", 10);
 
+        int count = 0;
         for (int i = 0; i < teList.tagCount(); i++) {
             NBTTagCompound teNbt = teList.getCompoundTagAt(i);
             int y = teNbt.getInteger("y");
@@ -122,8 +128,10 @@ public class Retrofitter {
             if (MultiblockRadarLogic.TE_WHITELIST.contains(identifier)) {
                 int value = MultiblockRadarLogic.getValue(identifier);
                 queue.add(new Combined(RadarDataManager.pack(teNbt.getInteger("x"), teNbt.getInteger("z")), value));
+                count++;
             }
         }
+        return count;
     }
 
     private NBTTagCompound findSection(NBTTagList sections, int sectionY) {
