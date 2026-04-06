@@ -1,5 +1,6 @@
 package wfcore.mixins.minecraft;
 
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
@@ -25,7 +26,7 @@ public abstract class RadarRegistryWorldMixin {
         World world = te.getWorld();
         if (world.isRemote) return;
 
-        if (MultiblockRadarLogic.isOnTEWhitelist(te)) {
+        if (!(te instanceof IGregTechTileEntity) && MultiblockRadarLogic.isOnTEWhitelist(te)) {
             RadarDataManager.INSTANCE.addMachine(
                     world,
                     te.getPos().getX(),

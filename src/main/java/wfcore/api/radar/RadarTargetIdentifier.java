@@ -44,17 +44,12 @@ public class RadarTargetIdentifier {
         String serializedBlockState = null;
         ResourceLocation teResource = TileEntity.getKey(targetTE.getClass());
         IBlockState state = targetTE.getWorld().getBlockState(targetTE.getPos());
-        //GT metadata is our best bet
-        if (targetTE instanceof IGregTechTileEntity mte) {
-            identifier = mte.getMetaTileEntity().metaTileEntityId.toString();
-        } else {
             //NonGT stuff is a lot less fancy
             identifier = teResource.toString();
             ResourceLocation block = Objects.requireNonNull(ForgeRegistries.BLOCKS.getKey(state.getBlock()));
             if (!teResource.equals(block)) {
                 serializedBlockState = block.toString();
             }
-        }
 
         return new RadarTargetIdentifier(identifier, serializedBlockState);
 

@@ -1,5 +1,6 @@
 package wfcore.api.radar;
 
+import gregtech.api.metatileentity.MetaTileEntity;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.*;
@@ -184,8 +185,18 @@ public class MultiblockRadarLogic {
         return TE_WHITELIST.contains(currId);
     }
 
+    public static boolean isOnTEWhitelist(MetaTileEntity tileEntity) {
+        RadarTargetIdentifier currId = new RadarTargetIdentifier(tileEntity.metaTileEntityId.toString(), null);
+        return TE_WHITELIST.contains(currId);
+    }
+
     public static int getValue(TileEntity tileEntity) {
         RadarTargetIdentifier currId = RadarTargetIdentifier.getBestIdentifier(tileEntity);
+        return TE_WHITELIST.get(currId).intensity;
+    }
+
+    public static int getValue(MetaTileEntity tileEntity) {
+        RadarTargetIdentifier currId = new RadarTargetIdentifier(tileEntity.metaTileEntityId.toString(), null);
         return TE_WHITELIST.get(currId).intensity;
     }
     public static int getValue(RadarTargetIdentifier target) {

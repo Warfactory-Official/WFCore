@@ -152,22 +152,14 @@ public abstract class MteRenderer<T extends MetaTileEntity & IAnimatedMTE> imple
      * @param z            world Z position
      * @param partialTicks interpolation factor for smooth rendering
      */
-    protected void render(T mte, double x, double y, double z, float partialTicks) {
+    public void render(T mte, double x, double y, double z, float partialTicks) {
         var vec3d = mte.getTransform();
         GlStateManager.pushMatrix();
-        GlStateManager.enableRescaleNormal();
-        GlStateManager.shadeModel(GL11.GL_SMOOTH);
-        GlStateManager.colorMaterial(1032, 5634);
         {
-
-
-
             setupLight(mte.getWorld().getCombinedLight(mte.getLightPos(), 0));
-
             EnumFacing front = mte.getFrontFacing();
             GlStateManager.translate(x, y, z );
             GlStateManager.translate(vec3d.x, vec3d.y, vec3d.z);
-
             if (mte instanceof MultiblockControllerBase controller) {
                 EnumFacing upwards = controller.getUpwardsFacing();
                 EnumFacing left = RelativeDirection.LEFT.getRelativeFacing(front, upwards, controller.isFlipped());
@@ -175,14 +167,8 @@ public abstract class MteRenderer<T extends MetaTileEntity & IAnimatedMTE> imple
                 if (controller.isFlipped()) flip(left);
                 rotateToFace(front, upwards);
             }
-
             renderGLTF(mte, partialTicks);
-
         }
-
-        GlStateManager.disableRescaleNormal();
-        GlStateManager.disableColorMaterial();
-
         GlStateManager.popMatrix();
     }
 

@@ -219,14 +219,31 @@ jar {
             from configurations.contain
         }
     }
+    
+    // Explicitly copy mixins to assets inside the jar
+    eachFile { file ->
+        if (file.name.startsWith("mixins.") && file.name.endsWith(".json")) {
+            def modId = propertyString('mod_id')
+            file.path = "assets/${modId}/${file.name}"
+        }
+    }
+    
     doFirst {
         manifest {
             def attribute_map = [:]
             attribute_map['ModType'] = "CRL"
 
-            def mixinConfigs = fileTree(dir: 'src/main/resources', include: 'mixins.wfcore.*.json').files.name.join(',')
+            def modId = propertyString('mod_id')
+            def mixinConfigsList = fileTree(dir: 'src/main/resources', include: 'mixins.*.json').files.collect { file ->
+                return "assets/${modId}/${file.name}"
+            }
 
-            attribute_map['MixinConfigs'] = mixinConfigs
+            if (!mixinConfigsList.isEmpty()) {
+                attribute_map['MixinConfigs'] = mixinConfigsList.join(',')
+            } else {
+                attribute_map['MixinConfigs'] = "assets/${modId}/${modId}.default.mixin.json,assets/${modId}/${modId}.mod.mixin.json"
+            }
+            
             if (configurations.contain.size() > 0) {
                 attribute_map['ContainedDeps'] = configurations.contain.collect { it.name }.join(' ')
                 attribute_map['NonModDeps'] = true
@@ -250,6 +267,15 @@ jar {
 shadowJar {
     configurations = [project.configurations.shadow]
     archiveClassifier = "shadow"
+    relocate 'org.apache.commons.math3', 'wfcore.shadow.commons.math3'
+    
+    // Explicitly copy mixins to assets inside the shadow jar
+    eachFile { file ->
+        if (file.name.startsWith("mixins.") && file.name.endsWith(".json")) {
+            def modId = propertyString('mod_id')
+            file.path = "assets/${modId}/${file.name}"
+        }
+    }
 }
 
 

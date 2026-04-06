@@ -435,7 +435,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        super.renderMetaTileEntity(renderState, translation, pipeline);
         getFrontOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
+        super.renderMetaTileEntity(renderState, translation, pipeline);
     }
 }

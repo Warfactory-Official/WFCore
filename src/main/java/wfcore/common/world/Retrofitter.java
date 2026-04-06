@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 public class Retrofitter {
 
     public static final Retrofitter INSTANCE = new Retrofitter();
-    private static final int CHUNKS_PER_TICK = 5;
+    private static final int CHUNKS_PER_TICK = 2;
     public static boolean active = false;
 
     public final Queue<Combined> queue = new ConcurrentLinkedQueue<>();
@@ -125,9 +125,13 @@ public class Retrofitter {
 
             RadarTargetIdentifier identifier = RadarTargetIdentifier.getBestIdentifier(teNbt, blockId);
 
-            if (MultiblockRadarLogic.TE_WHITELIST.contains(identifier)) {
+            if (MultiblockRadarLogic.TE_WHITELIST.contains(identifier) ) {
                 int value = MultiblockRadarLogic.getValue(identifier);
                 queue.add(new Combined(RadarDataManager.pack(teNbt.getInteger("x"), teNbt.getInteger("z")), value));
+                count++;
+            } else if (teNbt.hasKey("MetaId", 8)){
+                WFCore.LOGGER.info("Adding MTE {}", teNbt.getString("MetaId"));
+                queue.add(new Combined(RadarDataManager.pack(teNbt.getInteger("x"), teNbt.getInteger("z")), 10));
                 count++;
             }
         }

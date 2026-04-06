@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import wfcore.client.render.AnimatedRenderQueue;
 import wfcore.common.network.SPacketUpdateRenderMask;
 import wfcore.common.te.TERegistry;
 
@@ -148,8 +149,7 @@ public interface IAnimatedMTE extends IFastRenderMetaTileEntity {
     @Override
     default void renderMetaTileEntity(double x, double y, double z, float partialTicks) {
         if (thisObject().getWorld() == Minecraft.getMinecraft().world && shouldRender()) {
-            TERegistry.getRenderer(thisObject().getClass())
-                    .render(thisObject(), x, y, z, partialTicks);
+            AnimatedRenderQueue.getInstance().submit(this);
         }
     }
 }

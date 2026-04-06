@@ -11,6 +11,7 @@ import wfcore.common.events.RegistryEvents;
 import wfcore.common.managers.RadarDataManager;
 import wfcore.common.recipe.HBMRecepies;
 import wfcore.common.recipe.WFCoreMachineRecipes;
+import wfcore.common.world.Retrofitter;
 
 public class CommonProxy {
 
@@ -18,6 +19,7 @@ public class CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new RegistryEvents());
+        MinecraftForge.EVENT_BUS.register(Retrofitter.INSTANCE);
     }
 
     public void init(FMLInitializationEvent event) {

@@ -15,6 +15,7 @@
     "GuiDebugRemover",
     "TileEntityRendererDispatcherMixin",
     "RenderChunkMixin",
+    "MixinEntityRenderer",
     "BlockModelRendererMixin"
   ]
 }

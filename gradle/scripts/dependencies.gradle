@@ -25,6 +25,9 @@ repositories {
     }
     mavenCentral()
     mavenLocal() // Must be last for caching to work
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 dependencies {
@@ -48,19 +51,24 @@ dependencies {
     modImplementation "io.gitlab.hohserg.elegant.networking:elegant-networking-1.12:3.14"
     modImplementation('com.cleanroommc:modularui:3.0.5') { transitive = false }
     modImplementation "curse.maven:mcgltf-591547:4367036"
-    modImplementation files('libs/crgltf-0.0.1-alpha.jar')
+    
+    // Dev jars are already deobfuscated. Using `modImplementation` attempts to remap them, 
+    // which fails because they aren't obfuscated. `implementation` just adds them to the classpath
+    // directly, and Forge's loader will still detect and load them as mods in the dev environment.
+    implementation files('libs/crgltf-0.0.1-alpha.jar')
+    implementation files('libs/celeritas-forge-mc12.2-2.4.0-dev.jar')
 
     // Shadow & Contained Dependencies
-    shadow group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+    contain group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     implementation group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     
-    shadow "org.yaml:snakeyaml:2.5"
+    contain "org.yaml:snakeyaml:2.5"
     implementation "org.yaml:snakeyaml:2.5"
     
     modCompileOnly "curse.maven:ae2-extended-life-570458:5411078"
 
     // WF mods
-    modImplementation ("com.hbm:ntm-ce-java25:2.2.0.0-SNAPSHOT") { transitive = false }
+    modImplementation ("com.hbm:ntm-ce-java25:2.3.0.0-SNAPSHOT") { transitive = false }
     modImplementation "curse.maven:mchce-1383222:7628896"
 
     modImplementation "curse.maven:ctm-267602:2915363"
