@@ -273,7 +273,6 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         var world = getWorld();
         if (world != null && !world.isRemote) {
             disableBlockRendering(true);
-            setAnimEpoch();
         }
     }
 
