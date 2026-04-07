@@ -438,4 +438,9 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         getFrontOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
         super.renderMetaTileEntity(renderState, translation, pipeline);
     }
+
+    public double getRenderDistanceSqared(){
+        return 262144D; //512
+    }
+
 }

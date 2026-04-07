@@ -23,6 +23,13 @@ import java.util.Collection;
  */
 public interface IAnimatedMTE extends IFastRenderMetaTileEntity {
 
+
+
+
+    default double getRenderDistanceSqared(){
+        return 16384.0D;
+    }
+
     /**
      * Returns the local transformation offset for rendering.
      * <p>

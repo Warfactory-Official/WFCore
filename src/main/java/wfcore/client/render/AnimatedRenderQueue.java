@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.commons.math3.analysis.function.Min;
 import org.lwjgl.opengl.GL11;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.common.te.TERegistry;
@@ -19,6 +18,7 @@ public class AnimatedRenderQueue {
     private IAnimatedMTE[] pool;
     private int activeCount = 0;
     private int capacity;
+
     private AnimatedRenderQueue() {
         this.capacity = 512;
         this.pool = new IAnimatedMTE[capacity];
