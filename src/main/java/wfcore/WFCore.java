@@ -31,11 +31,9 @@ public class WFCore {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        GregTechAPI.networkHandler.registerPacket(SPacketUpdateRenderMask.class);
         proxy.preInit(event);
 
         // read the radar config file
-        MultiblockRadarLogic.readRadarConfig();
     }
 
     @Mod.EventHandler

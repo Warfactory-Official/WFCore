@@ -50,15 +50,15 @@ public class AnimatedRenderQueue {
         double camY = rm.viewerPosY;
         double camZ = rm.viewerPosZ;
 
-        GlStateManager.pushMatrix();
+        org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
+        org.lwjgl.opengl.GL11.glPushClientAttrib(-1);
+
         Minecraft.getMinecraft().entityRenderer.enableLightmap();
         GlStateManager.disableBlend();
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.enableRescaleNormal();
         GlStateManager.shadeModel(GL11.GL_SMOOTH);
         GlStateManager.colorMaterial(1032, 5634);
-        org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
-        org.lwjgl.opengl.GL11.glPushClientAttrib(-1);
 
         for (int i = 0; i < activeCount; i++) {
             IAnimatedMTE mte = pool[i];
@@ -78,14 +78,8 @@ public class AnimatedRenderQueue {
         org.lwjgl.opengl.GL11.glPopClientAttrib();
         org.lwjgl.opengl.GL11.glPopAttrib();
         Minecraft.getMinecraft().entityRenderer.disableLightmap();
-        GlStateManager.disableRescaleNormal();
-        GlStateManager.disableColorMaterial();
 
-        GlStateManager.enableAlpha();
-        GlStateManager.enableBlend();
-        GlStateManager.depthMask(true);
 
-        GlStateManager.popMatrix();
 
 
         activeCount = 0;

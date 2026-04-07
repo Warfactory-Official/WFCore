@@ -31,8 +31,16 @@ gregtech.material.schrabidium=Schrabidium
 gregtech.material.australium=Australium
 gregtech.material.verticium=Verticium
 gregtech.material.galvanized_steel=Galvanized Steel
-
 gregtech.machine.boiler_tower.height=Stack Height: %s §9blocks
+wfcore.machine.radar.tooltip.1=Allows you to find enemy bases with ease
+wfcore.machine.radar.tooltip.2=§eNeeds skylight access, Y >= 100
+wfcore.machine.radar.tooltip.3=§eRequires EV power, computation
+wfcore.machine.radar.tooltip.4=§eReturns scrambled data, requires further processing
+wfcore.machine.radar.tooltip.5=§4§lI know where you live
+wfcore.multiblock.error.height_limit=Controller Y < 100!
+wfcore.multiblock.error.no_sky=Structure has no sky access!
+
+
 
 # Ore Prefixes
 
@@ -67,4 +75,4 @@ wfcore.data.bit_or_bits=bit(s)
 
 # gommers shenanigans
 item.hbm.ingot_asbestos.name=Asbestos Ingot
- death.attack.asbestos=%1$s ascended to the great insulation warehouse in the sky
+death.attack.asbestos=%1$s ascended to the great insulation warehouse in the sky

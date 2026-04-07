@@ -51,6 +51,7 @@ dependencies {
     modImplementation "io.gitlab.hohserg.elegant.networking:elegant-networking-1.12:3.14"
     modImplementation('com.cleanroommc:modularui:3.0.5') { transitive = false }
     modImplementation "curse.maven:mcgltf-591547:4367036"
+    modImplementation "curse.maven:sussypatches-1319894:7252924"
     
     // Dev jars are already deobfuscated. Using `modImplementation` attempts to remap them, 
     // which fails because they aren't obfuscated. `implementation` just adds them to the classpath

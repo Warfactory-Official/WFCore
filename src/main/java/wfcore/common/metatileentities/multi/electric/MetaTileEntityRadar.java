@@ -23,17 +23,16 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockDisplayText;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.*;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.RelativeDirection;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import lombok.Getter;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
@@ -44,8 +43,10 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import wfcore.api.capability.data.IDataStorage;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.api.radar.MultiblockRadarLogic;
@@ -131,6 +132,16 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     }
 
+
+    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip, boolean advanced) {
+        super.addInformation(stack, world, tooltip, advanced);
+        tooltip.add(I18n.format("wfcore.machine.radar.tooltip.1"));
+        tooltip.add(I18n.format("wfcore.machine.radar.tooltip.2"));
+        tooltip.add(I18n.format("wfcore.machine.radar.tooltip.3"));
+        tooltip.add(I18n.format("wfcore.machine.radar.tooltip.4"));
+        tooltip.add(I18n.format("wfcore.machine.radar.tooltip.5"));
+    }
+
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
@@ -147,10 +158,6 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         return new MetaTileEntityRadar(this.metaTileEntityId);
     }
 
-    @Override
-    public void checkStructurePattern() {
-        super.checkStructurePattern();
-    }
 
     @Override
     protected void formStructure(PatternMatchContext context) {
@@ -163,6 +170,28 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
             disableBlockRendering(true);
         }
     }
+
+    @Override
+    public void checkStructurePattern() {
+        super.checkStructurePattern();
+        boolean correctY = isCorrectY();
+        if (this.isStructureFormed() && correctY && hasSkylightAccess()) {
+            this.invalidateStructure();
+        }
+
+    }
+
+    private boolean isCorrectY() {
+        return this.getPos().getY() >= 100;
+    }
+
+    public boolean hasSkylightAccess() {
+        BlockPos pos = getPos().up(35);
+        int topBlockY = getWorld().getHeight(pos.getX(), pos.getZ());
+        return topBlockY <= pos.getY() + 35;
+    }
+
+
 
     private void initAnimatedBlocks() {
         for (int[] blockOffset : ANIM_BLOCKS_CONTROLLER_OFFSETS) {
@@ -320,6 +349,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         return false;
     }
 
+
     private void onScanClick(Widget.ClickData data) {
         logic.performScan();
     }
@@ -328,20 +358,32 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         tryWrite = !tryWrite;
     }
 
+
     protected void addDisplayText(List<ITextComponent> textList) {
+        boolean flag = false;
+        if (!isCorrectY()) {
+            textList.add(TextComponentUtil.stringWithColor(TextFormatting.RED,
+                    new TextComponentTranslation("wfcore.multiblock.error.height_limit").getFormattedText()));
+            flag = true;
+        }
+        if (!hasSkylightAccess()) {
+            textList.add(TextComponentUtil.stringWithColor(TextFormatting.RED,
+                    new TextComponentTranslation("wfcore.multiblock.error.no_sky").getFormattedText()));
+
+            flag = true;
+        }
+        if(flag) return;
+
         MultiblockDisplayText.builder(textList, this.isStructureFormed()).addCustom(tl -> {
-            // get the cluster data to use and set a default
             List<ClusterData> data = logic.lastScan;
             String dataString = new TextComponentTranslation("info.data.no_data").getFormattedText();
 
-            // if data is present, begin converting it, incrementing index every 5 seconds
             if (data != null && !data.isEmpty()) {
                 int clusterIdx = ((int) tickCounter / 100) % data.size();
                 ClusterData targetData = data.get(clusterIdx);
                 dataString = targetData.toString();
             }
 
-            // add text
             ITextComponent scanResults = TextComponentUtil.stringWithColor(TextFormatting.AQUA, dataString);
             tl.add(scanResults);
         });
