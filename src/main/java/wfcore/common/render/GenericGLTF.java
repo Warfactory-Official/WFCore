@@ -61,16 +61,14 @@ public class GenericGLTF<T extends MetaTileEntity & IAnimatedMTE> extends MteRen
      * @param <T>          ensures type safety; must match the tile entity type constraint
      */
     public <T extends MetaTileEntity & IAnimatedMTE> void renderGLTF(T mte, float partialTicks) {
-        float worldTimeS = Animation.getWorldTime(mte.getWorld(), partialTicks);
+        long currentTick = mte.getWorld().getTotalWorldTime();
+        long startTick = mte.getAnimEpoch();
+        float ticksElapsed = (currentTick - startTick) + partialTicks;
+        float timeS = ticksElapsed / 20f;
         var animation = animations.get(mte.getAnimState());
-        float epochS = mte.getAnimEpoch() / 20f;
-        float time = worldTimeS - epochS;
-
-        if (animation != null && time >= 0) {
-            animation.update(time);
+        if (animation != null && timeS >= 0) {
+            animation.update(timeS);
         }
-
-        // Choose rendering path depending on whether a shader mod is active
         if (MCglTF.getInstance().isShaderModActive()) {
             renderedScene.renderForShaderMod();
         } else {

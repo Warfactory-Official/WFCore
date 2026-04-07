@@ -51,6 +51,10 @@ public class RadarSavedData extends WorldSavedData {
         database.put(id, new RadarScanRecord(clusters, System.currentTimeMillis()));
         this.markDirty();
     }
+    public void rmScan(UUID id) {
+        database.remove(id);
+        this.markDirty();
+    }
 
     public List<ClusterData> getScan(UUID id) {
         RadarScanRecord record = database.get(id);

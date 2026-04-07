@@ -1,16 +1,13 @@
 package wfcore.api.radar;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.IEnergyContainer;
-import gregtech.api.metatileentity.MetaTileEntity;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
-import it.unimi.dsi.fastutil.objects.*;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -18,37 +15,28 @@ import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.yaml.snakeyaml.Yaml;
 import wfcore.WFCore;
+import wfcore.api.util.math.BoundingBox;
 import wfcore.api.util.math.ClusterData;
 import wfcore.api.util.math.IntCoord2;
-import wfcore.api.util.math.BoundingBox;
 import wfcore.common.managers.RadarDataManager;
 import wfcore.common.managers.RadarSavedData;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-
-import static wfcore.api.util.LogUtil.logExceptionWithTrace;
 
 public class MultiblockRadarLogic {
     //TODO: Make those values adjustable in GUI
     public static final int MIN_PTS = 10;
     public static final int EPS = 200;
-
-    private int voltageTier;
-    private int overclockAmount;
+    private final MetaTileEntityRadar metaTileEntity;
     @Nullable
     public UUID lastScan = null;
-    private final MetaTileEntityRadar metaTileEntity;
+    public boolean finished = false;
+    @Getter
+    protected boolean hasNotEnoughEnergy;
+    private int voltageTier;
     @Getter
     @Setter
     private boolean isActive;
@@ -57,72 +45,10 @@ public class MultiblockRadarLogic {
     @Getter
     private int scanProgress = 0;
 
-
-
-    public long getEnergyDraw() {
-        if (voltageTier < 0) return 0;
-        return GTValues.V[voltageTier] * (long) Math.pow(4, overclockAmount);
-    }
-
-    public boolean isDataReady() {
-        return lastScan != null;
-    }
-
-    public boolean tickScan(IEnergyContainer energyContainer) {
-        if (!isActive || !canWork) return false;
-
-        int targetTicks = getScanDurationTicks();
-        long draw = getEnergyDraw();
-
-        if (energyContainer.getEnergyStored() >= draw) {
-            energyContainer.changeEnergy(-draw);
-            scanProgress++;
-
-            if (scanProgress >= targetTicks) {
-                if (isDataReady()) {
-                    return true;
-                } else {
-                    scanProgress = targetTicks - 1;
-                }
-            }
-        } else {
-            isActive = false;
-        }
-        return false;
-    }
-    public void setClientProgress(int progress) {
-        this.scanProgress = progress;
-    }
-
     public MultiblockRadarLogic(MetaTileEntityRadar metaTileEntity) {
         this.voltageTier = -1;
-        this.overclockAmount = 0;
         this.metaTileEntity = metaTileEntity;
     }
-
-    public void structureFormed() {
-        canWork = true;
-        isActive = false;
-        this.voltageTier = metaTileEntity.getTier();
-        this.overclockAmount = 0;  //TODO: Decide how we want to calculate overclock based on tier
-    }
-
-    public void invalidateStructure() {
-        canWork = false;
-        isActive = false;
-    }
-
-    // synchronized access for reading or write to the scan results, with the returned object being a
-    @NotNull
-    private synchronized void storeScanResult(UUID uuid) {
-        lastScan = uuid;
-    }
-
-    private boolean canScan() {
-        return !metaTileEntity.getWorld().isRemote && metaTileEntity.isStructureFormed() && canWork && !isActive;
-    }
-
-
 
     static public IntCoord2 getCoordPair(BlockPos pos) {
         return new IntCoord2(pos);
@@ -135,7 +61,7 @@ public class MultiblockRadarLogic {
 
         List<EntityPlayerMP> worldPlayers = serverInstance.getPlayerList().getPlayers();
         for (EntityPlayerMP player : worldPlayers) {
-            entityPosMap.put(getCoordPair(player.getPosition()), new DataPoint(TargetType.PLAYER,0));
+            entityPosMap.put(getCoordPair(player.getPosition()), new DataPoint(TargetType.PLAYER, 0));
         }
 
         ObjectIterator<Long2IntMap.Entry> iterator = RadarDataManager.INSTANCE.getHandler(world).getMachineMap().long2IntEntrySet().iterator();
@@ -154,48 +80,6 @@ public class MultiblockRadarLogic {
         return entityPosMap;
     }
 
-    public int getScanDurationTicks() {
-        return switch (this.voltageTier) {
-            case 4 -> 12000; // EV: 600 seconds
-            case 5 -> 8000;  // IV: 400 seconds
-            case 6 -> 6000;  // LuV: 300 seconds
-            case 7 -> 3000;  // ZPM: 150 seconds
-            case 8 -> 3000;
-            default -> Integer.MAX_VALUE;
-        };
-    }
-
-    public enum TargetType {
-        PLAYER,
-        STRUCTURE
-    }
-
-    //Note: players have no value
-    public static record DataPoint(TargetType type, int value) {
-    }
-    public void startScan() {
-        if (!canScan()) return;
-        this.isActive = true;
-        this.scanProgress = 0;
-        this.lastScan = null;
-
-        Map<IntCoord2, DataPoint> snapshot = collectValidEntites(metaTileEntity.getWorld());
-
-        calculateDBSCAN(snapshot, EPS, MIN_PTS)
-                .thenAccept(list -> {
-                    FMLCommonHandler.instance().getMinecraftServerInstance().addScheduledTask(() -> {
-                        UUID freshId = UUID.randomUUID();
-                        RadarSavedData.get().addScan(freshId, list);
-                        this.storeScanResult(freshId);
-                    });
-                })
-                .exceptionally(ex -> {
-                    WFCore.LOGGER.error("DBSCAN Failed: " + ex.getMessage());
-                    return null;
-                });
-    }
-
-    ;
     /*
     Radar takes all loaded valid entities and players, uses clustering algorithm DBSCAN and finds
     all clusters, which in this case are bases.
@@ -263,18 +147,122 @@ public class MultiblockRadarLogic {
         });
     }
 
+    public boolean isDataReady() {
+        return lastScan != null;
+    }
 
-    public long getOverclockedEnergy() {
-        long baseEU = GTValues.V[voltageTier];
-        // Manual tuning: quadruple power per overclock
-        return baseEU * (long) Math.pow(4, overclockAmount);
+    public boolean tickScan() {
+        if (!isActive) return false;
+        int targetTicks = getScanDurationTicks();
+
+        if (!checkCanDrain())
+            return false;
+
+        consumeEnergy(false);
+
+        if (scanProgress <= targetTicks)
+            scanProgress++;
+
+        if (scanProgress >= targetTicks) {
+            if (isDataReady()) {
+                finished = true;
+                return true;
+            } else {
+                scanProgress = targetTicks - 1;
+            }
+        }
+
+
+        return false;
+    }
+
+    protected boolean checkCanDrain() {
+        if (!consumeEnergy(true)) {
+            if (scanProgress >= 2) {
+                this.scanProgress = 1;
+                hasNotEnoughEnergy = true;
+                setActive(false);
+            }
+            return false;
+        }
+
+        if (this.hasNotEnoughEnergy &&
+                metaTileEntity.getEnergyInputPerSecond() > 19L * GTValues.VA[metaTileEntity.getEnergyTier()]) {
+            this.hasNotEnoughEnergy = false;
+            setActive(true);
+        }
+        return true;
     }
 
 
+    protected boolean consumeEnergy(boolean simulate) {
+        return metaTileEntity.drainEnergy(simulate);
+    }
+
+    public void setClientProgress(int progress) {
+        this.scanProgress = progress;
+    }
+
+    public void structureFormed() {
+        canWork = true;
+        isActive = false;
+        this.voltageTier = metaTileEntity.getTier();
+    }
+
+    public void invalidateStructure() {
+        canWork = false;
+        isActive = false;
+    }
+
+    // synchronized access for reading or write to the scan results, with the returned object being a
+    @NotNull
+    private synchronized void storeScanResult(UUID uuid) {
+        lastScan = uuid;
+    }
+
+    public boolean canScan() {
+        return !metaTileEntity.getWorld().isRemote && metaTileEntity.hasDataStick() && metaTileEntity.isStructureFormed() && canWork && !isActive && consumeEnergy(true);
+    }
+
+    public int getScanDurationTicks() {
+        return switch (this.voltageTier) {
+            case GTValues.EV -> 12000; // 600 seconds
+            case GTValues.IV -> 8000;  // 400 seconds
+            case GTValues.LuV -> 6000;  // 300 seconds
+            case GTValues.ZPM -> 3000;  // 150 seconds
+            case GTValues.UV -> 2000;  // 100 seconds
+            default -> Integer.MAX_VALUE;
+        };
+    }
+
+    public void startScan() {
+        if (!canScan()) return;
+        this.isActive = true;
+        this.scanProgress = 0;
+        this.lastScan = null;
+
+        Map<IntCoord2, DataPoint> snapshot = collectValidEntites(metaTileEntity.getWorld());
+
+        calculateDBSCAN(snapshot, EPS, MIN_PTS)
+                .thenAccept(list -> {
+                    FMLCommonHandler.instance().getMinecraftServerInstance().addScheduledTask(() -> {
+                        UUID freshId = UUID.randomUUID();
+                        RadarSavedData.get().addScan(freshId, list);
+                        this.storeScanResult(freshId);
+                    });
+                })
+                .exceptionally(ex -> {
+                    WFCore.LOGGER.error("DBSCAN Failed: " + ex.getMessage());
+                    return null;
+                });
+    }
+
+    ;
 
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         data.setBoolean("isActive", this.isActive);
         data.setInteger("scanProgress", this.scanProgress);
+        data.setBoolean("isFinished", finished);
         if (this.lastScan != null) {
             data.setUniqueId("lastScan", this.lastScan);
         }
@@ -283,9 +271,24 @@ public class MultiblockRadarLogic {
 
     public void readFromNBT(NBTTagCompound data) {
         this.isActive = data.getBoolean("isActive");
+        this.finished = data.getBoolean("isFinished");
         this.scanProgress = data.getInteger("scanProgress");
         if (data.hasUniqueId("lastScan")) {
             this.lastScan = data.getUniqueId("lastScan");
         }
+    }
+
+    public double getProgressPercent() {
+        return ((double) getScanProgress() / getScanDurationTicks()) * 100;
+    }
+
+
+    public enum TargetType {
+        PLAYER,
+        STRUCTURE
+    }
+
+    //Note: players have no value
+    public static record DataPoint(TargetType type, int value) {
     }
 }

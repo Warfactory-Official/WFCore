@@ -8,6 +8,7 @@ import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.SoundEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -17,6 +18,7 @@ import wfcore.api.block.ICustomBlockItem;
 import wfcore.api.material.modifications.WFCoreMaterialExtraFlags;
 import wfcore.api.material.ore.WFCoreOrePrefix;
 import wfcore.api.material.ore.WFCoreRecipeHandler;
+import wfcore.common.audio.WFSounds;
 import wfcore.common.blocks.BlockRegistry;
 import wfcore.common.items.ItemRegistry;
 import wfcore.common.materials.WFMaterials;
@@ -57,6 +59,11 @@ public class RegistryEvents {
         VanillaRecipes.registerCTRecipes(event);
         VanillaRecipes.registerFurnaceRecipes(event);
         GregtechRecipes.registerGregTechRecipes();    }
+
+    @SubscribeEvent
+    public void registerSounds(RegistryEvent.Register<SoundEvent> event) {
+        WFSounds.register();
+        }
 
     @SubscribeEvent
     public void registerItems(RegistryEvent.Register<Item> event) {

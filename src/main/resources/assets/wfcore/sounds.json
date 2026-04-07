@@ -1,0 +1,12 @@
+{
+  "radar_loop": {
+    "category": "block",
+    "subtitle": "wfcore.subtitle.radar_loop",
+    "sounds": [
+      {
+        "name": "wfcore:radar_loop",
+        "stream": false
+      }
+    ]
+  }
+}

@@ -23,6 +23,8 @@ import java.util.Collection;
  */
 public interface IAnimatedMTE extends IFastRenderMetaTileEntity {
 
+    static int CHANGE_ANIM = 1077;
+
 
 
 

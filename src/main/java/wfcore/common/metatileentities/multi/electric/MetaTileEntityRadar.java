@@ -5,22 +5,17 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.google.common.collect.Lists;
 import com.hbm.blocks.ModBlocks;
-import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.GTValues;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.gui.Widget;
-import gregtech.api.gui.widgets.AdvancedTextWidget;
-import gregtech.api.gui.widgets.ClickButtonWidget;
-import gregtech.api.gui.widgets.IndicatorImageWidget;
-import gregtech.api.gui.widgets.SlotWidget;
+import gregtech.api.gui.resources.TextureArea;
+import gregtech.api.gui.widgets.*;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockDisplayText;
-import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.*;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
@@ -30,8 +25,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.RelativeDirection;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.core.sound.GTSoundEvents;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -39,6 +34,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -46,16 +42,20 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.client.render.WFTextures;
+import wfcore.common.audio.WFSounds;
 import wfcore.common.blocks.BlockBoltableCasing;
 import wfcore.common.blocks.BlockMetalSheetCasing;
 import wfcore.common.blocks.BlockRegistry;
 import wfcore.common.items.registry.DataHolderRegistry;
+import wfcore.common.managers.RadarSavedData;
 import wfcore.common.materials.WFMaterials;
 import wfcore.common.metatileentities.multi.WFPredicates;
 
@@ -64,7 +64,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IAnimatedMTE {
+@Slf4j
+public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IAnimatedMTE, IProgressBarMultiblock {
     private static final String[][] patternAisles = {
             {"                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "      JJJJ      ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
             {" GGGCG    GCGGG ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "    F      F    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "      JJJJ      ", "    JJ    JJ    ", "    JJ    JJ    ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                ", "                "},
@@ -89,6 +90,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     private static final RelativeDirection aisleRelDir = RelativeDirection.RIGHT;
     private static final int SYNC_RADAR_PROGRESS = 900;
     private static final int SYNC_RADAR_STATE = 901;
+    private static final int tier = GTValues.EV;
 
     static {
         final int animatedLayerIndex = 22;
@@ -108,19 +110,8 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
             }
         }
     }
-    @Override
-    public void receiveCustomData(int dataId, PacketBuffer buf) {
-        super.receiveCustomData(dataId, buf);
 
-        // Handle our custom progress packet
-        if (dataId == SYNC_RADAR_PROGRESS) {
-            this.logic.setClientProgress(buf.readInt());
-        }
-        // Handle our custom active state packet
-        else if (dataId == SYNC_RADAR_STATE) {
-            this.logic.setActive(buf.readBoolean());
-        }
-    }
+    private final MultiblockRadarLogic logic = new MultiblockRadarLogic(this);  // this should be created/modified whenever structure is formed/modified
     private final ItemStackHandler dataStickSlot = new ItemStackHandler(1) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -129,29 +120,117 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         }
 
         @Override
+        @Nonnull
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            // If the radar is currently scanning, block all extraction
+            if (isActive()) {
+                return ItemStack.EMPTY;
+            }
+            logic.finished = false;
+            return super.extractItem(slot, amount, simulate);
+        }
+
+        protected int getStackLimit(int slot, @NotNull ItemStack stack) {
+            return 1;
+        }
+
+        @Override
         public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
             return DataHolderRegistry.isAllowed(stack);
         }
     };
-
-    private final MultiblockRadarLogic logic = new MultiblockRadarLogic(this);  // this should be created/modified whenever structure is formed/modified
     private final Collection<BlockPos> ANIMATED_BLOCKS;
+    @Getter
     protected IEnergyContainer energyContainer;
-
     @Getter
     private String animState = "idle";
-
     @Getter
     private long animEpoch = 0L;
-
-    private long tickCounter = 0;
-    private boolean tryWrite = false;
-    private int scanProgress = 0;
-
 
     public MetaTileEntityRadar(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
         ANIMATED_BLOCKS = new ArrayList<>(ANIM_BLOCKS_CONTROLLER_OFFSETS.size());
+    }
+
+    public void setAnimState(String state) {
+        if(this.animState.equals(state)) return;
+        this.animState = state;
+        this.animEpoch = getWorld().getTotalWorldTime();
+        if(!getWorld().isRemote){
+            writeCustomData(CHANGE_ANIM, buf -> {
+                buf.writeString(animState);
+                buf.writeLong(animEpoch);
+            });
+        }
+
+    }
+    public void setAnimEpoch() {
+        this.animEpoch = getWorld().getTotalWorldTime();
+        if(!getWorld().isRemote){
+            writeCustomData(CHANGE_ANIM, buf -> {
+                buf.writeString(animState);
+                buf.writeLong(animEpoch);
+            });;
+        }
+
+    }
+
+    @Override
+    public void receiveInitialSyncData(PacketBuffer buf) {
+        super.receiveInitialSyncData(buf);
+        this.animState = buf.readString(32); // Limit string length for safety
+        this.animEpoch = buf.readLong();
+    }
+
+
+    @Override
+    public void receiveCustomData(int dataId, PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+
+        switch (dataId) {
+            case SYNC_RADAR_PROGRESS -> this.logic.setClientProgress(buf.readInt());
+            case SYNC_RADAR_STATE -> this.logic.setActive(buf.readBoolean());
+            case CHANGE_ANIM -> {
+                this.animState = buf.readString(32);
+                this.animEpoch = buf.readLong();
+            }
+        }
+    }
+
+    @Override
+    protected void addWarningText(List<ITextComponent> textList) {
+        MultiblockDisplayText.builder(textList, isStructureFormed(), false)
+                .addLowPowerLine(logic.isHasNotEnoughEnergy())
+                .addMaintenanceProblemLines(getMaintenanceProblems());
+    }
+
+    public long getEnergyInputPerSecond() {
+        return energyContainer.getInputPerSec();
+    }
+
+    public int getEnergyTier() {
+        int currentTier;
+        if (energyContainer == null) {
+            currentTier = tier;
+        } else {
+            // Original logic: clamping voltage-based tier between this.tier and this.tier + 1
+            currentTier = Math.min(tier + 1,
+                    Math.max(tier, GTUtility.getFloorTierByVoltage(energyContainer.getInputVoltage())));
+        }
+
+        // Ensure the result is at least 4 (EV)
+        return Math.max(GTValues.EV, currentTier);
+    }
+
+    public boolean drainEnergy(boolean simulate) {
+        long energyToDrain = GTValues.VA[getEnergyTier()];
+        long resultEnergy = energyContainer.getEnergyStored() - energyToDrain;
+        if (resultEnergy >= 0L && resultEnergy <= energyContainer.getEnergyCapacity()) {
+            if (!simulate)
+                energyContainer.changeEnergy(-energyToDrain);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -194,6 +273,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         var world = getWorld();
         if (world != null && !world.isRemote) {
             disableBlockRendering(true);
+            setAnimEpoch();
         }
     }
 
@@ -204,6 +284,16 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         if (this.isStructureFormed() && !(correctY && hasSkylightAccess())) {
             this.invalidateStructure();
         }
+
+        if (this.isStructureFormed()) {
+            if (getTier() < GTValues.EV) {
+                this.invalidateStructure();
+            }
+        }
+    }
+
+    public float getVolume() {
+        return 6.0f;
     }
 
     private boolean isCorrectY() {
@@ -256,7 +346,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
                 .where('J', boltable())
                 .where('C', WFPredicates.compressedBlocks(Materials.Steel))
                 .where('F', frames(WFMaterials.GalvanizedSteel))
-                .where('I', abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.IMPORT_ITEMS)) //FIXME
+                .where('I', abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.COMPUTATION_DATA_RECEPTION).or(aluCasing().setMaxGlobalLimited(4)))
                 .where('K', aluCasing())
                 .where('#', any())
                 .where(' ', any())
@@ -277,6 +367,11 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         resetTileAbilities();
         logic.invalidateStructure();
         disableBlockRendering(false);
+        if (!getWorld().isRemote) {
+            setAnimState("idle");
+            writeCustomData(SYNC_RADAR_STATE, buf -> buf.writeBoolean(false));
+            writeCustomData(SYNC_RADAR_PROGRESS, buf -> buf.writeInt(0));
+        }
     }
 
     public int getTier() {
@@ -289,6 +384,8 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
+        buf.writeString(animState);
+        buf.writeLong(animEpoch);
         var world = getWorld();
         if (world != null && !world.isRemote) {
             disableBlockRendering(isStructureFormed());
@@ -298,9 +395,15 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     @Override
     public void update() {
         super.update();
-        if (getWorld().isRemote || !isActive()) return;
+        if (getWorld().isRemote)
+            return;
 
-        if (logic.tickScan(energyContainer)) {
+        String targetState = isActive() ? "running" : "idle";
+        if (!this.animState.equals(targetState)) {
+            setAnimState(targetState);
+        }
+
+        if (logic.tickScan()) {
             completeScan();
         }
 
@@ -309,8 +412,12 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         }
     }
 
+    @SideOnly(Side.CLIENT)
+    public SoundEvent getSound() {
+        return WFSounds.RADAR_LOOP;
+    }
 
-    boolean hasDataStick() {
+    public boolean hasDataStick() {
         return !dataStickSlot.getStackInSlot(0).isEmpty();
     }
 
@@ -318,20 +425,28 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         logic.setActive(false);
         ItemStack stick = dataStickSlot.getStackInSlot(0);
 
-        if (!stick.isEmpty() && tryWrite && logic.lastScan != null) {
+        if (!stick.isEmpty() && logic.lastScan != null) {
+
+
             NBTTagCompound nbt = stick.hasTagCompound() ? stick.getTagCompound() : new NBTTagCompound();
+
+            assert nbt != null;
+            if (nbt.hasKey("TargetUUID")) {
+                var uuid = nbt.getUniqueId("TargetUUID");
+                RadarSavedData.get().rmScan(uuid);
+            }
+
             nbt.setUniqueId("TargetUUID", logic.lastScan);
-            nbt.setBoolean("is_analyzed", true);
+            nbt.setBoolean("is_analyzed", false);
             nbt.setString("title", "Radar Scan: " + logic.lastScan.toString().substring(0, 8));
             stick.setTagCompound(nbt);
         }
 
-//        GTUtility.doSound(GTSoundEvents.COMPUTATION, getWorld(), getPos());
         writeCustomData(SYNC_RADAR_STATE, buf -> buf.writeBoolean(false));
         writeCustomData(SYNC_RADAR_PROGRESS, buf -> buf.writeInt(0));
+        logic.lastScan = null;
         markDirty();
     }
-
 
 
     @Override
@@ -353,18 +468,16 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     }
 
     private void onScanClick(Widget.ClickData data) {
-        if (!getWorld().isRemote && !isActive() && hasDataStick()) {
+        if (!getWorld().isRemote && !isActive() && logic.canScan()) {
             logic.startScan();
             writeCustomData(SYNC_RADAR_STATE, buf -> buf.writeBoolean(true));
             markDirty();
         }
     }
 
-    private void onWriteToggleClick(Widget.ClickData data) {
-        tryWrite = !tryWrite;
-    }
 
     protected void addDisplayText(List<ITextComponent> textList) {
+        super.addDisplayText(textList);
         boolean flag = false;
         if (!isCorrectY()) {
             textList.add(TextComponentUtil.stringWithColor(TextFormatting.RED,
@@ -379,66 +492,68 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         }
         if (flag) return;
 
-        MultiblockDisplayText.builder(textList, this.isStructureFormed()).addCustom(tl -> {
-            // If not formed, the builder usually handles the "Incomplete" header
-            if (!this.isStructureFormed()) return;
+        MultiblockDisplayText.builder(textList, this.isStructureFormed())
+                .addEnergyUsageLine(energyContainer)
+                .addCustom(tl -> {
+
+                    if (!this.isStructureFormed()) return;
 
 
-            boolean isScanning = logic.isActive(); // Assuming your logic handler has this check
+                    boolean isScanning = logic.isActive();
 
-            if (isScanning) {
-                // Progress State
-                String progress = String.format("Scanning... %d%%", logic.getScanProgress());
-                tl.add(TextComponentUtil.stringWithColor(TextFormatting.YELLOW, progress));
-            } else if (!logic.isDataReady()) {
-                if(!hasDataStick()){
-                    tl.add(TextComponentUtil.stringWithColor(TextFormatting.YELLOW,
-                            new TextComponentTranslation("info.status.insert.datastick").getFormattedText()));
-                }
-                // Idle/Waiting State
-                tl.add(TextComponentUtil.stringWithColor(TextFormatting.GREEN,
-                        new TextComponentTranslation("info.status.ready").getFormattedText()));
-            } else {
-                // Data Cycle State
-                tl.add(TextComponentUtil.stringWithColor(TextFormatting.AQUA, new TextComponentTranslation("info.status.saved").getFormattedText()));
-            }
-        });
+                    if (isScanning) {
+                        // Progress State
+                        String progress = String.format("Scanning... %f%%", logic.getProgressPercent());
+                        tl.add(TextComponentUtil.stringWithColor(TextFormatting.YELLOW, progress));
+                    } else if (!logic.finished) {
+                        // Idle/Waiting State
+                        if (!hasDataStick()) {
+                            tl.add(TextComponentUtil.stringWithColor(TextFormatting.YELLOW,
+                                    new TextComponentTranslation("wfcore.gui.info.status.insert.datastick").getFormattedText()));
+                        } else
+                            tl.add(TextComponentUtil.stringWithColor(TextFormatting.GREEN,
+                                    new TextComponentTranslation("wfcore.gui.info.status.ready").getFormattedText()));
+                        tl.add(TextComponentUtil.stringWithColor(TextFormatting.AQUA,
+                                new TextComponentTranslation("wfcore.gui.info.status.total_time", logic.getScanDurationTicks() / 20).getFormattedText()));
+                    } else {
+                        //Finished state
+                        tl.add(TextComponentUtil.stringWithColor(TextFormatting.AQUA, new TextComponentTranslation("wfcore.gui.info.status.saved").getFormattedText()));
+                    }
+                });
     }
 
-    private void addWriteInfoText(List<ITextComponent> textList) {
-        if (tryWrite) {
-            textList.add(TextComponentUtil.translationWithColor(TextFormatting.GREEN, "info.data.try_write"));
-        } else {
-            textList.add(TextComponentUtil.translationWithColor(TextFormatting.RED, "info.data.not_try_write"));
-        }
-    }
 
-    @Override
     protected ModularUI.Builder createUITemplate(EntityPlayer entityPlayer) {
-        ModularUI.Builder builder = ModularUI.builder(GuiTextures.BORDERED_BACKGROUND, 256, 208)
-                .shouldColor(false);
+        ModularUI.Builder builder = ModularUI.builder(GuiTextures.BACKGROUND, 198, 208);
+        IProgressBarMultiblock progressMulti = this;
 
-        builder.image(7, 20, 242, 90, GuiTextures.DISPLAY);
-        builder.label(10, 8, getMetaFullName(), 0xFFFFFF);
-        builder.widget(new AdvancedTextWidget(12, 24, this::addDisplayText, 0xFFFFFF)
-                .setMaxWidthLimit(230)
-                .setClickHandler(this::handleDisplayClick));
 
-        builder.widget(new SlotWidget(dataStickSlot, 0, 119, 85)
-                .setBackgroundTexture(GuiTextures.SLOT)
-                .setTooltipText("wfcore.gui.tooltips.data_stick_slot"));
-
-        builder.widget(new ClickButtonWidget(40, 85, 70, 20, "SCAN", this::onScanClick));
-        builder.widget(new ClickButtonWidget(146, 85, 70, 20, "TOGGLE", this::onWriteToggleClick));
-
-        builder.widget(new AdvancedTextWidget(146, 140, this::addWriteInfoText, 0xAAAAAA));
-
-        builder.widget(new IndicatorImageWidget(225, 85, 18, 18, getLogo())
+        builder.image(4, 4, 190, 117, GuiTextures.DISPLAY);
+        builder.widget(new IndicatorImageWidget(174, 101, 17, 17, getLogo())
                 .setWarningStatus(getWarningLogo(), this::addWarningText)
                 .setErrorStatus(getErrorLogo(), this::addErrorText));
 
-        builder.bindPlayerInventory(entityPlayer.inventory, GuiTextures.SLOT, 47, 125);
+        builder.label(9, 9, getMetaFullName(), 0xFFFFFF);
+        builder.widget(new AdvancedTextWidget(9, 20, this::addDisplayText, 0xFFFFFF)
+                .setMaxWidthLimit(181)
+                .setClickHandler(this::handleDisplayClick));
 
+        builder.widget(new SlotWidget(dataStickSlot, 0, 173, 161).setBackgroundTexture(GuiTextures.SLOT)
+                .setTooltipText("wfcore.gui.tooltips.data_stick_slot"));
+
+        builder.widget(new ToggleButtonWidget(173, 183, 18, 18,
+                GuiTextures.BUTTON_POWER,
+                this.logic::isActive,
+                _ -> this.onScanClick(null)));
+        builder.widget(new ImageWidget(173, 201, 18, 6, GuiTextures.BUTTON_POWER_DETAIL));
+        ProgressWidget progressBar = new ProgressWidget(
+                () -> progressMulti.getFillPercentage(0),
+                20, 110, 94, 7,
+                progressMulti.getProgressBarTexture(0), ProgressWidget.MoveType.HORIZONTAL)
+                .setHoverTextConsumer(list -> progressMulti.addBarHoverText(list, 0));
+        builder.widget(progressBar);
+
+        builder.bindPlayerInventory(entityPlayer.inventory, 125);
         return builder;
     }
 
@@ -489,7 +604,8 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         super.writeToNBT(data);
         logic.writeToNBT(data);
         data.setTag("SlotDataStick", dataStickSlot.serializeNBT());
-        data.setBoolean("TryWrite", this.tryWrite);
+        data.setString("AnimState", this.animState);
+        data.setLong("AnimEpoch", this.animEpoch);
         return data;
     }
 
@@ -497,10 +613,11 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         logic.readFromNBT(data);
+        this.animState = data.getString("AnimState");
+        this.animEpoch = data.getLong("AnimEpoch");
         if (data.hasKey("SlotDataStick")) {
             dataStickSlot.deserializeNBT(data.getCompoundTag("SlotDataStick"));
         }
-        this.tryWrite = data.getBoolean("TryWrite");
     }
 
     @Override
@@ -509,7 +626,18 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         super.renderMetaTileEntity(renderState, translation, pipeline);
     }
 
+
     public double getRenderDistanceSqared() {
         return 262144D; //512
+    }
+
+    @Override
+    public double getFillPercentage(int index) {
+        return logic.getProgressPercent() / 100;
+    }
+
+    @Override
+    public TextureArea getProgressBarTexture(int index) {
+        return GuiTextures.PROGRESS_BAR_HPCA_COMPUTATION;
     }
 }
