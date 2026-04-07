@@ -18,6 +18,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.api.radar.RadarTargetIdentifier;
+import wfcore.common.config.RadarConfig;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -131,7 +132,7 @@ public class RadarProbe extends BaseItem {
 
         String block = ForgeRegistries.BLOCKS.getKey(targState.getBlock()).toString();
         boolean isSharedID = teResource.equals(block);
-        boolean isWhitelisted = MultiblockRadarLogic.isOnTEWhitelist(targTE);
+        boolean isWhitelisted = RadarConfig.isOnTEWhitelist(targTE);
 
         // send the display name
         // Priority 1: GregTech MTE Check

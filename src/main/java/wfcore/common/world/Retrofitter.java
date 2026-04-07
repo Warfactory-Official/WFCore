@@ -10,6 +10,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import wfcore.WFCore;
 import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.api.radar.RadarTargetIdentifier;
+import wfcore.common.config.RadarConfig;
 import wfcore.common.managers.RadarDataManager;
 
 import java.io.DataInputStream;
@@ -125,8 +126,8 @@ public class Retrofitter {
 
             RadarTargetIdentifier identifier = RadarTargetIdentifier.getBestIdentifier(teNbt, blockId);
 
-            if (MultiblockRadarLogic.TE_WHITELIST.contains(identifier) ) {
-                int value = MultiblockRadarLogic.getValue(identifier);
+            if (RadarConfig.TE_WHITELIST.contains(identifier) ) {
+                int value = RadarConfig.getValue(identifier);
                 queue.add(new Combined(RadarDataManager.pack(teNbt.getInteger("x"), teNbt.getInteger("z")), value));
                 count++;
             } else if (teNbt.hasKey("MetaId", 8)){

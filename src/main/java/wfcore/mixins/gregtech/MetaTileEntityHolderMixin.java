@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import wfcore.WFCore;
 import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.api.radar.RadarTargetIdentifier;
+import wfcore.common.config.RadarConfig;
 import wfcore.common.managers.RadarDataManager;
 
 @Mixin(value = MetaTileEntityHolder.class, remap = false)
@@ -20,12 +21,12 @@ public abstract class MetaTileEntityHolderMixin {
         MetaTileEntityHolder holder = (MetaTileEntityHolder) (Object) this;
         World world = holder.getWorld();
         if((world != null && !world.isRemote) && mte != null){
-            if(MultiblockRadarLogic.isOnTEWhitelist(mte)){
+            if(RadarConfig.isOnTEWhitelist(mte)){
                 RadarDataManager.INSTANCE.addMachine(
                         world,
                         holder.getPos().getX(),
                         holder.getPos().getZ(),
-                        MultiblockRadarLogic.getValue(mte)
+                        RadarConfig.getValue(mte)
                 );
                 if (WFCore.DEBUG)
                     WFCore.LOGGER.info("Added TileEntity {} to map at {} [Dim: {}]", mte.metaTileEntityId.toString(), holder.getPos().toString(), world.provider.getDimension());

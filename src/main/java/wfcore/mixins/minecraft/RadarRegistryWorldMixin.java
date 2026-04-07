@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import wfcore.WFCore;
 import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.api.radar.RadarTargetIdentifier;
+import wfcore.common.config.RadarConfig;
 import wfcore.common.managers.RadarDataManager;
 
 @Mixin(World.class)
@@ -26,12 +27,12 @@ public abstract class RadarRegistryWorldMixin {
         World world = te.getWorld();
         if (world.isRemote) return;
 
-        if (!(te instanceof IGregTechTileEntity) && MultiblockRadarLogic.isOnTEWhitelist(te)) {
+        if (!(te instanceof IGregTechTileEntity) && RadarConfig.isOnTEWhitelist(te)) {
             RadarDataManager.INSTANCE.addMachine(
                     world,
                     te.getPos().getX(),
                     te.getPos().getZ(),
-                    MultiblockRadarLogic.getValue(te)
+                    RadarConfig.getValue(te)
             );
             if (WFCore.DEBUG)
                 WFCore.LOGGER.info("Added TileEntity {} to map at {} [Dim: {}]", RadarTargetIdentifier.getBestIdentifier(te), te.getPos().toString(), world.provider.getDimension());
@@ -64,7 +65,7 @@ public abstract class RadarRegistryWorldMixin {
 
                 if (!isChunkUnloading) {
 
-                    if (world.isAirBlock(pos) || !MultiblockRadarLogic.isOnTEWhitelist(world.getTileEntity(pos))) {
+                    if (world.isAirBlock(pos) || !RadarConfig.isOnTEWhitelist(world.getTileEntity(pos))) {
                         RadarDataManager.INSTANCE.removeMachine(world, pos.getX(), pos.getZ());
 
                         if (WFCore.DEBUG)

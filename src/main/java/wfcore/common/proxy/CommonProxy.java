@@ -8,6 +8,7 @@ import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.common.commands.WfCoreCommands;
+import wfcore.common.config.RadarConfig;
 import wfcore.common.events.RegistryEvents;
 import wfcore.common.network.SPacketUpdateRenderMask;
 import wfcore.common.recipe.HBMRecepies;
@@ -22,7 +23,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new RegistryEvents());
         MinecraftForge.EVENT_BUS.register(Retrofitter.INSTANCE);
-        MultiblockRadarLogic.readRadarConfig();
+        RadarConfig.readRadarConfig();
     }
 
     public void init(FMLInitializationEvent event) {

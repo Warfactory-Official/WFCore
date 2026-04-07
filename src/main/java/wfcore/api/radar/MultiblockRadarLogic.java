@@ -1,28 +1,30 @@
 package wfcore.api.radar;
 
+import gregtech.api.GTValues;
+import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.metatileentity.MetaTileEntity;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.*;
-import net.minecraft.block.state.IBlockState;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 import wfcore.WFCore;
 import wfcore.api.util.math.ClusterData;
 import wfcore.api.util.math.IntCoord2;
 import wfcore.api.util.math.BoundingBox;
 import wfcore.common.managers.RadarDataManager;
+import wfcore.common.managers.RadarSavedData;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 
 import java.io.FileInputStream;
@@ -44,81 +46,52 @@ public class MultiblockRadarLogic {
 
     private int voltageTier;
     private int overclockAmount;
-    public List<ClusterData> lastScan = null;
+    @Nullable
+    public UUID lastScan = null;
     private final MetaTileEntityRadar metaTileEntity;
+    @Getter
+    @Setter
     private boolean isActive;
+    @Getter
     private boolean canWork;
+    @Getter
+    private int scanProgress = 0;
 
-    public static ObjectOpenHashSet<RadarTargetIdentifier> TE_WHITELIST = new ObjectOpenHashSet<>();
-    public static ObjectOpenHashSet<RadarTargetIdentifier> ENTITY_WHITELIST = new ObjectOpenHashSet<>();
 
-    private static final Path CONFIG_PATH = Paths.get("config/" + WFCore.MODID + "/radar.cfg");
 
-    private static final List<String> EXAMPLE_YAML = List.of(
-            "# Controls basic radar functionality",
-            "TileEntity:",
-            " - RegName: gregtech:cutter.uv # Example with GT MetaID",
-            "   value: 10",
-            " - RegName: minecraft:furnace # Vanilla Example",
-            "   value: 1",
-            " - RegName: hbm:tileentity_charge # TE+Block Example",
-            "   State: hbm:charge_semtex",
-            "   value: 2"
-    );
-
-    // this may be useful eventually, but currently handling each mod's method of registering tile entities is too involved
-    public static void readRadarConfig() {
-        Map<String, Object> globalRadarData;
-        WFCore.LOGGER.atDebug().log("Beginning reading of radar config.");
-
-        // read from the file
-        try {
-            writeStubIfEmpty();
-            InputStream inputStream = new FileInputStream(CONFIG_PATH.toFile());  // will throw if no file exists
-            globalRadarData = new Yaml().load(inputStream);  // get a mapping of keys to objects
-        } catch (IOException ioError) {
-            logExceptionWithTrace("Failed in stub write and config parse step [" + ioError.getMessage() + "]. Trace:", ioError);
-            return;
-        } catch (Exception genericError) {
-            logExceptionWithTrace("Failed with unknown error in stub write and config parse step", genericError);
-            return;
-        }
-
-        // interpret the file
-        List<Map<String, Object>> blocks = (List<Map<String, Object>>) globalRadarData.get("TileEntity");
-        List<Map<String, Object>> entities = (List<Map<String, Object>>) globalRadarData.get("entities");
-
-        populateWhitelist(TE_WHITELIST, blocks);
-        populateWhitelist(ENTITY_WHITELIST, entities);
-
-        WFCore.LOGGER.atDebug().log("Finished reading radar config");
+    public long getEnergyDraw() {
+        if (voltageTier < 0) return 0;
+        return GTValues.V[voltageTier] * (long) Math.pow(4, overclockAmount);
     }
 
-
-
-    private static void populateWhitelist(
-            ObjectOpenHashSet<RadarTargetIdentifier> whitelist,
-            List<Map<String, Object>> targetContainer) {
-        if (targetContainer == null) return;
-        for (Map<String, Object> entry : targetContainer) {
-            String regName = (String) entry.get("RegName");
-            int value = ((Number) entry.getOrDefault("value", 1)).intValue();
-            String stateStr = (String) entry.get("State");
-            whitelist.add(new RadarTargetIdentifier(regName,stateStr).intensity(value));
-        }
+    public boolean isDataReady() {
+        return lastScan != null;
     }
 
-    public static void writeStubIfEmpty() throws IOException {
-        if (Files.notExists(CONFIG_PATH) || Files.size(CONFIG_PATH) == 0) {
-            Files.createDirectories(CONFIG_PATH.getParent());
-            Files.write(
-                    CONFIG_PATH,
-                    EXAMPLE_YAML,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE
-            );
+    public boolean tickScan(IEnergyContainer energyContainer) {
+        if (!isActive || !canWork) return false;
+
+        int targetTicks = getScanDurationTicks();
+        long draw = getEnergyDraw();
+
+        if (energyContainer.getEnergyStored() >= draw) {
+            energyContainer.changeEnergy(-draw);
+            scanProgress++;
+
+            if (scanProgress >= targetTicks) {
+                if (isDataReady()) {
+                    return true;
+                } else {
+                    scanProgress = targetTicks - 1;
+                }
+            }
+        } else {
+            isActive = false;
         }
+        return false;
+    }
+    public void setClientProgress(int progress) {
+        this.scanProgress = progress;
     }
 
     public MultiblockRadarLogic(MetaTileEntityRadar metaTileEntity) {
@@ -141,67 +114,15 @@ public class MultiblockRadarLogic {
 
     // synchronized access for reading or write to the scan results, with the returned object being a
     @NotNull
-    private synchronized void storeScanResult(List<ClusterData> input) {
-        lastScan = input;
+    private synchronized void storeScanResult(UUID uuid) {
+        lastScan = uuid;
     }
 
     private boolean canScan() {
-        return !metaTileEntity.getWorld().isRemote && metaTileEntity.isStructureFormed() && canWork() && !isActive();
+        return !metaTileEntity.getWorld().isRemote && metaTileEntity.isStructureFormed() && canWork && !isActive;
     }
 
-        /* Scan should do as follows:
-        1. Make sure that its on server
-        2. make sure it can scan and is enabled, it should not activate on power on, player must trigger scan
-             in GUI by hand
-        3. make sure dataslot (custom TE that can only hold data item such as memory stick or orb) has empty valid data item (should work with data bank)
-        4. Grab snapshot of valid TEs and players (this ofc is done on server thread)
-        5. Run calculation
-        6. Put it on data stick so it can then be put into a printer (basically port of NH printer), for data to be put in a book
-         */
-    //Perhaps some visualization in the tablet?
-    //OPTIONAL: integrate Map mod with the mod, so players have bounding boxes drawn on their minimap, with all valid TEs  pointed out and waypoints to the centers
 
-    public boolean performScan() {
-        // only scan on server
-        if (!canScan()) { return false; }
-
-        //Scanner cannot perform a scan if data is already written
-        if(true || !dataSlotIsEmpty() && !dataSlotIsWritten()){
-            //Get the snapshot of all loaded players TEs
-            Map<IntCoord2,DataPoint> loadedValidObjects = collectValidEntites(metaTileEntity.getWorld());
-            //Run dbscan
-            //this.scanResults = clusterData;
-            calculateDBSCAN(loadedValidObjects, EPS, MIN_PTS).thenAccept(this::storeScanResult).exceptionally(ex -> {
-                System.err.println("Error during DBSCAN calculation: " + ex.getMessage());
-                return null;
-            });
-        }
-
-        return true;
-    }
-
-    public static boolean isOnTEWhitelist(TileEntity tileEntity) {
-        RadarTargetIdentifier currId = RadarTargetIdentifier.getBestIdentifier(tileEntity);
-        return TE_WHITELIST.contains(currId);
-    }
-
-    public static boolean isOnTEWhitelist(MetaTileEntity tileEntity) {
-        RadarTargetIdentifier currId = new RadarTargetIdentifier(tileEntity.metaTileEntityId.toString(), null);
-        return TE_WHITELIST.contains(currId);
-    }
-
-    public static int getValue(TileEntity tileEntity) {
-        RadarTargetIdentifier currId = RadarTargetIdentifier.getBestIdentifier(tileEntity);
-        return TE_WHITELIST.get(currId).intensity;
-    }
-
-    public static int getValue(MetaTileEntity tileEntity) {
-        RadarTargetIdentifier currId = new RadarTargetIdentifier(tileEntity.metaTileEntityId.toString(), null);
-        return TE_WHITELIST.get(currId).intensity;
-    }
-    public static int getValue(RadarTargetIdentifier target) {
-        return TE_WHITELIST.get(target).intensity;
-    }
 
     static public IntCoord2 getCoordPair(BlockPos pos) {
         return new IntCoord2(pos);
@@ -233,6 +154,17 @@ public class MultiblockRadarLogic {
         return entityPosMap;
     }
 
+    public int getScanDurationTicks() {
+        return switch (this.voltageTier) {
+            case 4 -> 12000; // EV: 600 seconds
+            case 5 -> 8000;  // IV: 400 seconds
+            case 6 -> 6000;  // LuV: 300 seconds
+            case 7 -> 3000;  // ZPM: 150 seconds
+            case 8 -> 3000;
+            default -> Integer.MAX_VALUE;
+        };
+    }
+
     public enum TargetType {
         PLAYER,
         STRUCTURE
@@ -240,6 +172,27 @@ public class MultiblockRadarLogic {
 
     //Note: players have no value
     public static record DataPoint(TargetType type, int value) {
+    }
+    public void startScan() {
+        if (!canScan()) return;
+        this.isActive = true;
+        this.scanProgress = 0;
+        this.lastScan = null;
+
+        Map<IntCoord2, DataPoint> snapshot = collectValidEntites(metaTileEntity.getWorld());
+
+        calculateDBSCAN(snapshot, EPS, MIN_PTS)
+                .thenAccept(list -> {
+                    FMLCommonHandler.instance().getMinecraftServerInstance().addScheduledTask(() -> {
+                        UUID freshId = UUID.randomUUID();
+                        RadarSavedData.get().addScan(freshId, list);
+                        this.storeScanResult(freshId);
+                    });
+                })
+                .exceptionally(ex -> {
+                    WFCore.LOGGER.error("DBSCAN Failed: " + ex.getMessage());
+                    return null;
+                });
     }
 
     ;
@@ -311,51 +264,28 @@ public class MultiblockRadarLogic {
     }
 
 
-    public int getVoltageTier() {
-        return voltageTier;
-    }
-
-    public int getOverclockAmount() {
-        return this.overclockAmount;
-    }
-
-    public boolean canWork() {
-        return canWork;
-    }
-
-    public boolean isActive() {
-        return isActive;
+    public long getOverclockedEnergy() {
+        long baseEU = GTValues.V[voltageTier];
+        // Manual tuning: quadruple power per overclock
+        return baseEU * (long) Math.pow(4, overclockAmount);
     }
 
 
-    public boolean dataSlotIsEmpty(){
-        //FIXME
-        return false;
-    }
-
-    public boolean dataSlotIsWritten(){
-        //FIXME
-        return false;
-    }
 
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        if (lastScan == null) { return data; }
-        if (lastScan.isEmpty()) { return data; }
-
-        NBTTagList lastScan = new NBTTagList();
-        this.lastScan.forEach(scanResult -> lastScan.appendTag(scanResult.toNBT()));
-        data.setTag("last_scan", lastScan);
+        data.setBoolean("isActive", this.isActive);
+        data.setInteger("scanProgress", this.scanProgress);
+        if (this.lastScan != null) {
+            data.setUniqueId("lastScan", this.lastScan);
+        }
         return data;
     }
 
     public void readFromNBT(NBTTagCompound data) {
-        // don't overwrite existing data
-        if (lastScan != null && lastScan.size() > 0) { return; }
-        if (!data.hasKey("last_scan")) { return; }
-
-        // read the last scan
-        NBTTagList lastScan = data.getTagList("last_scan", 10);
-        this.lastScan = new ArrayList<>();
-        lastScan.tagList.forEach(tag -> this.lastScan.add(ClusterData.fromNBT((NBTTagCompound) tag)));
+        this.isActive = data.getBoolean("isActive");
+        this.scanProgress = data.getInteger("scanProgress");
+        if (data.hasUniqueId("lastScan")) {
+            this.lastScan = data.getUniqueId("lastScan");
+        }
     }
 }
