@@ -75,6 +75,12 @@ info.data_storage.free=Free
 info.data_storage.taken=Taken
 info.pen_drive.default=Stores %s in an easy to transport form factor.
 
+wfcore.tooltip.cpu_stats=Mainframe Component Stats:
+wfcore.tooltip.base_cwu=Processing Power
+wfcore.tooltip.efficiency=Thermal Efficiency
+wfcore.tooltip.power_draw=Power Consumption
+wfcore.tooltip.high_heat_warning=WARNING: High thermal output.
+
 # util/format
 wfcore.data.bit_or_bits=bit(s)
 
