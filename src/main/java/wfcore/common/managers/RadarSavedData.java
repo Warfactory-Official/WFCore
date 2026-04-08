@@ -28,7 +28,6 @@ public class RadarSavedData extends WorldSavedData {
         super(name);
     }
 
-    // --- Core Logic ---
 
     public static RadarSavedData get() {
         // Always attach to Dim 0 for global data

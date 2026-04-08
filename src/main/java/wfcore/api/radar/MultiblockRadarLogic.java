@@ -260,21 +260,21 @@ public class MultiblockRadarLogic {
     ;
 
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        data.setBoolean("isActive", this.isActive);
-        data.setInteger("scanProgress", this.scanProgress);
-        data.setBoolean("isFinished", finished);
+        data.setBoolean("Radar_isActive", this.isActive);
+        data.setInteger("Radar_scanProgress", this.scanProgress);
+        data.setBoolean("Radar_isFinished", finished);
         if (this.lastScan != null) {
-            data.setUniqueId("lastScan", this.lastScan);
+            data.setUniqueId("Radar_lastScan", this.lastScan);
         }
         return data;
     }
 
     public void readFromNBT(NBTTagCompound data) {
-        this.isActive = data.getBoolean("isActive");
-        this.finished = data.getBoolean("isFinished");
-        this.scanProgress = data.getInteger("scanProgress");
-        if (data.hasUniqueId("lastScan")) {
-            this.lastScan = data.getUniqueId("lastScan");
+        this.isActive = data.getBoolean("Radar_isActive");
+        this.finished = data.getBoolean("Radar_isFinished");
+        this.scanProgress = data.getInteger("Radar_scanProgress");
+        if (data.hasUniqueId("Radar_lastScan")) {
+            this.lastScan = data.getUniqueId("Radar_lastScan");
         }
     }
 

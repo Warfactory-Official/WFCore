@@ -31,6 +31,8 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
@@ -63,6 +65,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IAnimatedMTE, IProgressBarMultiblock {
@@ -90,6 +93,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     private static final RelativeDirection aisleRelDir = RelativeDirection.RIGHT;
     private static final int SYNC_RADAR_PROGRESS = 900;
     private static final int SYNC_RADAR_STATE = 901;
+    private static final int SYNC_RADAR_FINISHED = 903;
     private static final int tier = GTValues.EV;
 
     static {
@@ -122,11 +126,15 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         @Override
         @Nonnull
         public ItemStack extractItem(int slot, int amount, boolean simulate) {
-            // If the radar is currently scanning, block all extraction
-            if (isActive()) {
-                return ItemStack.EMPTY;
+            if (isActive()) return ItemStack.EMPTY;
+
+            // Only trigger if actually extracting
+            if (!simulate && logic.finished) {
+                logic.finished = false;
+                if (!getWorld().isRemote) {
+                    writeCustomData(SYNC_RADAR_FINISHED, buf -> buf.writeBoolean(false));
+                }
             }
-            logic.finished = false;
             return super.extractItem(slot, amount, simulate);
         }
 
@@ -178,15 +186,15 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
-        this.animState = buf.readString(32); // Limit string length for safety
+        this.animState = buf.readString(32);
         this.animEpoch = buf.readLong();
+        this.logic.finished = buf.readBoolean();
     }
 
 
     @Override
     public void receiveCustomData(int dataId, PacketBuffer buf) {
         super.receiveCustomData(dataId, buf);
-
         switch (dataId) {
             case SYNC_RADAR_PROGRESS -> this.logic.setClientProgress(buf.readInt());
             case SYNC_RADAR_STATE -> this.logic.setActive(buf.readBoolean());
@@ -194,6 +202,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
                 this.animState = buf.readString(32);
                 this.animEpoch = buf.readLong();
             }
+            case SYNC_RADAR_FINISHED -> this.logic.finished = buf.readBoolean();
         }
     }
 
@@ -385,6 +394,8 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         super.writeInitialSyncData(buf);
         buf.writeString(animState);
         buf.writeLong(animEpoch);
+        buf.writeBoolean(logic.finished);
+
         var world = getWorld();
         if (world != null && !world.isRemote) {
             disableBlockRendering(isStructureFormed());
@@ -425,24 +436,32 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         ItemStack stick = dataStickSlot.getStackInSlot(0);
 
         if (!stick.isEmpty() && logic.lastScan != null) {
-
-
             NBTTagCompound nbt = stick.hasTagCompound() ? stick.getTagCompound() : new NBTTagCompound();
 
-            assert nbt != null;
-            if (nbt.hasKey("TargetUUID")) {
-                var uuid = nbt.getUniqueId("TargetUUID");
-                RadarSavedData.get().rmScan(uuid);
+            if (nbt.hasUniqueId("TargetUUID")) {
+                UUID oldUuid = nbt.getUniqueId("TargetUUID");
+                RadarSavedData.get().rmScan(oldUuid);
             }
 
+
             nbt.setUniqueId("TargetUUID", logic.lastScan);
-            nbt.setBoolean("is_analyzed", false);
-            nbt.setString("title", "Radar Scan: " + logic.lastScan.toString().substring(0, 8));
+            nbt.setBoolean("is_analyzed", true);
+
+            NBTTagCompound display = nbt.getCompoundTag("display");
+            display.setString("Name", TextFormatting.AQUA + "Recorded Radar Data");
+
+            NBTTagList lore = new NBTTagList();
+            lore.appendTag(new NBTTagString(TextFormatting.GRAY + "Contains structure density coordinates."));
+            lore.appendTag(new NBTTagString(TextFormatting.DARK_PURPLE + "Ready for Printer analysis."));
+            display.setTag("Lore", lore);
+
+            nbt.setTag("display", display);
             stick.setTagCompound(nbt);
         }
 
         writeCustomData(SYNC_RADAR_STATE, buf -> buf.writeBoolean(false));
         writeCustomData(SYNC_RADAR_PROGRESS, buf -> buf.writeInt(0));
+        writeCustomData(SYNC_RADAR_FINISHED, buf -> buf.writeBoolean(true));
         logic.lastScan = null;
         markDirty();
     }
