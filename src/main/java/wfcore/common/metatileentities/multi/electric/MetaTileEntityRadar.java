@@ -62,10 +62,7 @@ import wfcore.common.materials.WFMaterials;
 import wfcore.common.metatileentities.multi.WFPredicates;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IAnimatedMTE, IProgressBarMultiblock {
@@ -178,7 +175,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
             writeCustomData(CHANGE_ANIM, buf -> {
                 buf.writeString(animState);
                 buf.writeLong(animEpoch);
-            });;
+            });
         }
 
     }
@@ -228,7 +225,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         }
 
         // Ensure the result is at least 4 (EV)
-        return Math.max(GTValues.EV, currentTier);
+        return currentTier;
     }
 
     public boolean drainEnergy(boolean simulate) {
@@ -438,7 +435,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         if (!stick.isEmpty() && logic.lastScan != null) {
             NBTTagCompound nbt = stick.hasTagCompound() ? stick.getTagCompound() : new NBTTagCompound();
 
-            if (nbt.hasUniqueId("TargetUUID")) {
+            if (Objects.requireNonNull(nbt).hasUniqueId("TargetUUID")) {
                 UUID oldUuid = nbt.getUniqueId("TargetUUID");
                 RadarSavedData.get().rmScan(oldUuid);
             }
