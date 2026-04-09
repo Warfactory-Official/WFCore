@@ -59,6 +59,7 @@ item.material.oreprefix.plateSextuple=Welded %s Plate
 # items
 item.radar_probe.name=Radar Debug Probe
 item.pen_drive.name=Pen Drive
+item.suicide_drone.name=Suicide Drone
 
 # blocks
 tile.sheet_casing.aluminum_sheet.name=Aluminium sheet casing

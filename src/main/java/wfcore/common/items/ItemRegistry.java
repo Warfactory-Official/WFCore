@@ -5,7 +5,7 @@ import gregtech.api.block.VariantItemBlock;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.util.IStringSerializable;
+import wfcore.common.drones.ItemSuicideDrone;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -21,6 +21,8 @@ public class ItemRegistry {
 
     //Texture should be in assets/wfcore/textures/items
     public static final Item EIGHT_CARROT = new ItemEightCarrot("eight_carrot");
+
+    public static final ItemSuicideDrone ITEM_SUICIDE_DRONE = new ItemSuicideDrone("suicide_drone");
 
     public static final RadarProbe RADAR_PROBE = new RadarProbe("radar_probe", "radar_probe");
     public static final PenDrive PEN_DRIVE = new PenDrive("pen_drive", "pen_drive");

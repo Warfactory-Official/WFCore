@@ -23,6 +23,9 @@ public class WFCore {
     public static final String MODID = "wfcore";
     public static final boolean DEBUG = true;
 
+    @Mod.Instance(wfcore.Reference.MODID)
+    public static WFCore INSTANCE;
+
     @SidedProxy(
             clientSide = "wfcore.common.proxy.ClientProxy",
             serverSide = "wfcore.common.proxy.CommonProxy"
