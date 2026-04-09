@@ -1,13 +1,14 @@
 package wfcore.common.metatileentities.compute;
 
+import org.jetbrains.annotations.Nullable;
+import wfcore.common.items.registry.CPURegistry;
+
 public interface ICpuSlot {
 
-    int getEstimatedCWU(int power);
-    int getBaseCWU();
-    double getEfficiency();
-    long getVoltageIn();
-    double getHeatGenerated(int power);
+    double getEstimatedCWU(int power, double temp);
 
+    @Nullable
+    CPURegistry.CPUEntry getStats();
 
 
 

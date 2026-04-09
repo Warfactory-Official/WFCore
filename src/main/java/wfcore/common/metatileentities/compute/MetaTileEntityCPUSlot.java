@@ -8,9 +8,9 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.client.utils.TooltipHelper;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMufflerHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -19,6 +19,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import wfcore.common.items.registry.CPURegistry;
 import wfcore.common.items.registry.DataHolderRegistry;
 
 import javax.annotation.Nonnull;
@@ -29,9 +30,10 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
     private final GTItemStackHandler inventory;
 
 
+
     public MetaTileEntityCPUSlot(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
-        this.inventory = new GTItemStackHandler(this, 1){
+        this.inventory = new GTItemStackHandler(this, 1) {
 
 
             protected int getStackLimit(int slot, @NotNull ItemStack stack) {
@@ -89,8 +91,6 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
     }
 
 
-
-
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
@@ -115,27 +115,16 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
     }
 
     @Override
-    public int getEstimatedCWU(int power) {
-        return 0;
+    public @Nullable CPURegistry.CPUEntry getStats() {
+        if (CPURegistry.isCPU(inventory.getStackInSlot(0)))
+            return CPURegistry.getEntry(inventory.getStackInSlot(0));
+        else return null;
     }
 
     @Override
-    public int getBaseCWU() {
-        return 0;
-    }
-
-    @Override
-    public double getEfficiency() {
-        return 0;
-    }
-
-    @Override
-    public long getVoltageIn() {
-        return 0;
-    }
-
-    @Override
-    public double getHeatGenerated(int power) {
-        return 0;
+    public double getEstimatedCWU(int power, double temp) {
+        CPURegistry.CPUEntry stats = getStats();
+        if (stats == null) return 0;
+        return stats.getCWU(power, temp);
     }
 }

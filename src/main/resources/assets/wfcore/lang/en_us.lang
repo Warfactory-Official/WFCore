@@ -80,6 +80,8 @@ wfcore.tooltip.base_cwu=Processing Power
 wfcore.tooltip.efficiency=Thermal Efficiency
 wfcore.tooltip.power_draw=Power Consumption
 wfcore.tooltip.high_heat_warning=WARNING: High thermal output.
+wfcore.tooltip.ram_stats=RAM Module Stats:
+wfcore.tooltip.throughput=Data Throughput
 
 # util/format
 wfcore.data.bit_or_bits=bit(s)
