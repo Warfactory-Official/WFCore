@@ -6,6 +6,7 @@ import codechicken.lib.vec.Matrix4;
 import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
+import gregtech.api.gui.widgets.AdvancedTextWidget;
 import gregtech.api.gui.widgets.SlotWidget;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -19,8 +20,12 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,6 +39,11 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
 
     private final GTItemStackHandler inventory;
     private long totalThroughput;
+
+    private void addThroughputText(List<ITextComponent> textList) {
+        textList.add(new TextComponentTranslation("wfcore.gui.mainframe.throughput",
+                TextFormatting.LIGHT_PURPLE.toString() + totalThroughput));
+    }
 
 
     public MetaTileEntityRAMSlot(ResourceLocation metaTileEntityId, int tier) {
@@ -63,6 +73,9 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
                     }
                 }
                 totalThroughput = throughput;
+                if (!getWorld().isRemote) {
+                    writeCustomData(950, buf -> buf.writeLong(totalThroughput));
+                }
             }
 
         };
@@ -76,6 +89,13 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
     @Override
     public void update() {
         super.update();
+    }
+    @Override
+    public void receiveCustomData(int dataId, PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+        if (dataId == 950) {
+            this.totalThroughput = buf.readLong();
+        }
     }
 
     @Override
@@ -128,6 +148,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
         ModularUI.Builder builder = ModularUI.builder(GuiTextures.BACKGROUND, guiWidth, guiHeight)
                 .label(10, 5, getMetaFullName());
 
+        builder.widget(new AdvancedTextWidget(10, 38, this::addThroughputText, 0xFFFFFF));
         int totalSlotsWidth = count * 18;
 
         int startX = (guiWidth / 2) - (totalSlotsWidth / 2);
@@ -146,6 +167,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
+        data.setLong("throughput", totalThroughput);
         data.setTag("RamInventory", inventory.serializeNBT());
         return data;
     }
@@ -153,6 +175,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
     @Override
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
+        this.totalThroughput = data.getLong("throughput");
         this.inventory.deserializeNBT(data.getCompoundTag("RamInventory"));
     }
 

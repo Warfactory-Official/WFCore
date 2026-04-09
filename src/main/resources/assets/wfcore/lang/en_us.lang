@@ -45,6 +45,7 @@ wfcore.gui.info.status.ready=Ready!
 wfcore.gui.info.status.insert.datastick=Please insert data storage device into the slot below!
 wfcore.gui.info.status.saved=Raw Scan data has been saved to the data device!
 wfcore.gui.info.status.total_time="Scan will take %d seconds"
+wfcore.gui.mainframe.throughput=Total throughput: %s CWU/t
 
 
 
