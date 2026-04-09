@@ -50,15 +50,13 @@ public class AnimatedRenderQueue {
         double camY = rm.viewerPosY;
         double camZ = rm.viewerPosZ;
 
-        org.lwjgl.opengl.GL11.glPushAttrib(org.lwjgl.opengl.GL11.GL_ALL_ATTRIB_BITS);
-        org.lwjgl.opengl.GL11.glPushClientAttrib(-1);
-
         Minecraft.getMinecraft().entityRenderer.enableLightmap();
         GlStateManager.disableBlend();
+        GlStateManager.enableAlpha();
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.enableRescaleNormal();
-        GlStateManager.shadeModel(GL11.GL_SMOOTH);
-        GlStateManager.colorMaterial(1032, 5634);
+
+        GlStateManager.shadeModel(org.lwjgl.opengl.GL11.GL_SMOOTH);
 
         for (int i = 0; i < activeCount; i++) {
             IAnimatedMTE mte = pool[i];
@@ -75,12 +73,23 @@ public class AnimatedRenderQueue {
             }
         }
 
-        org.lwjgl.opengl.GL11.glPopClientAttrib();
-        org.lwjgl.opengl.GL11.glPopAttrib();
+
+        //Hopefully this will prevent minecraft from shitting itself
+        net.minecraft.client.renderer.OpenGlHelper.glUseProgram(0);
+
+        GlStateManager.shadeModel(org.lwjgl.opengl.GL11.GL_FLAT);
+
+        GlStateManager.setActiveTexture(net.minecraft.client.renderer.OpenGlHelper.defaultTexUnit);
+        GlStateManager.enableTexture2D();
+
+        //Unbind VBOs (Stops particles from reading GLTF memory)
+        net.minecraft.client.renderer.OpenGlHelper.glBindBuffer(
+                net.minecraft.client.renderer.OpenGlHelper.GL_ARRAY_BUFFER, 0);
+
+        GlStateManager.disableBlend();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.disableRescaleNormal();
         Minecraft.getMinecraft().entityRenderer.disableLightmap();
-
-
-
 
         activeCount = 0;
     }

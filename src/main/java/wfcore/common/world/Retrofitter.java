@@ -130,10 +130,6 @@ public class Retrofitter {
                 int value = RadarConfig.getValue(identifier);
                 queue.add(new Combined(RadarDataManager.pack(teNbt.getInteger("x"), teNbt.getInteger("z")), value));
                 count++;
-            } else if (teNbt.hasKey("MetaId", 8)){
-                WFCore.LOGGER.info("Adding MTE {}", teNbt.getString("MetaId"));
-                queue.add(new Combined(RadarDataManager.pack(teNbt.getInteger("x"), teNbt.getInteger("z")), 10));
-                count++;
             }
         }
         return count;

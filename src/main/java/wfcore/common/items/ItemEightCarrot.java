@@ -32,7 +32,7 @@ public class ItemEightCarrot extends ItemFood implements SelfRegisteringModel {
     public ItemEightCarrot(String s, String texturePath) {
         super(5, 0.6F, false);
         this.setRegistryName(s);
-        this.setPotionEffect(new PotionEffect(MobEffects.WITHER, 5,1), 0.3f);
+        this.setPotionEffect(new PotionEffect(MobEffects.WITHER, 5*20,1), 0.3f);
         this.texturePath = texturePath;
         this.setTranslationKey(s);
         INSTANCES.add(this);
