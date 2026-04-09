@@ -16,7 +16,6 @@ import net.minecraft.world.World;
 import wfcore.WFCore;
 import wfcore.common.items.ItemRegistry;
 
-// eventually i can use IChunkLoader
 public class EntitySuicideDrone extends Entity {
 
     // Energy Constants
@@ -26,12 +25,12 @@ public class EntitySuicideDrone extends Entity {
     public static final long MIN_ENERGY_TO_LAUNCH = 50_000L;
 
     // Fly Constants
-    public static final double FLY_ALTITUDE = 100.0;
-    public static final double ASCEND_SPEED = 1.2;
-    public static final double FLY_SPEED = 0.84;
-    public static final double DESCEND_SPEED = 2;
-    public static final double START_KAMIKAZE_DIVE_DISTANCE = 10.0;
-    public static final float EXPLOSION_RADIUS = 10.0f;
+    public static final double FLY_ALTITUDE = 50.0;
+    public static final double ASCEND_SPEED = 0.6;
+    public static final double FLY_SPEED = 0.75;
+    public static final double DESCEND_SPEED = 1;
+    public static final double START_KAMIKAZE_DIVE_DISTANCE = 5.0;
+    public static final float EXPLOSION_RADIUS = 20.0f;
 
     // Misc Constants
     public static final int CHUNK_LOAD_RADIUS = 2;
@@ -52,9 +51,9 @@ public class EntitySuicideDrone extends Entity {
     public EntitySuicideDrone(World world) {
         super(world);
         if (WFCore.DEBUG) energy = MAX_ENERGY;
-        this.setSize(0.9F, 0.5F);
-        this.noClip = false; // maybe?
-        this.isImmuneToFire = false; // maybe not?
+        this.setSize(0.5F, 0.5F);
+        this.noClip = false;
+        this.isImmuneToFire = false;
     }
 
     // Update
@@ -62,8 +61,6 @@ public class EntitySuicideDrone extends Entity {
     public void onUpdate() {
         super.onUpdate();
         if (world.isRemote) return;
-        System.err.println(state.name());
-        System.err.println(energy);
         switch (state) {
             case IDLE -> tickIdle();
             case ASCENDING -> tickAscending();
@@ -94,7 +91,7 @@ public class EntitySuicideDrone extends Entity {
         this.move(MoverType.SELF, motionX, motionY, motionZ);
     }
     public void tickAscending() {
-        this.noClip = true;
+        this.noClip = false;
         drainEnergy();
         forceNearbyChunkToLoad();
 
@@ -113,7 +110,7 @@ public class EntitySuicideDrone extends Entity {
         if (this.collided) explode();
     }
     public void tickFlying() {
-        this.noClip = true;
+        this.noClip = false;
         drainEnergy();
         forceNearbyChunkToLoad();
 
@@ -135,7 +132,7 @@ public class EntitySuicideDrone extends Entity {
         if (this.collided) explode();
     }
     public void tickDiving() {
-        this.noClip = true;
+        this.noClip = false;
         drainEnergy();
         forceNearbyChunkToLoad();
 
@@ -144,11 +141,6 @@ public class EntitySuicideDrone extends Entity {
         double dz = targetZ - this.posZ;
         double totalDistance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        if (totalDistance < 2.0 || this.onGround || this.collided) {
-            explode();
-            return;
-        }
-
         double invDist = DESCEND_SPEED / totalDistance;
         this.motionX = dx * invDist;
         this.motionY = dy * invDist;
@@ -156,6 +148,10 @@ public class EntitySuicideDrone extends Entity {
         move(MoverType.SELF, motionX, motionY, motionZ);
         this.rotationYaw   = (float) Math.toDegrees(Math.atan2(-dx, dz));
         this.rotationPitch = (float) Math.toDegrees(Math.asin(-this.motionY / DESCEND_SPEED));
+
+        if (totalDistance < 2.0 || this.onGround || this.collided) {
+            explode();
+        }
     }
 
     // Utility Methods
@@ -196,6 +192,7 @@ public class EntitySuicideDrone extends Entity {
         if (energy == 0) state = DroneState.OUT_OF_ENERGY;
     }
     public void forceNearbyChunkToLoad() {
+        if (this.ticksExisted % 10 != 0) return;
         int chunkX = (int) this.posX >> 4;
         int chunkZ = (int) this.posZ >> 4;
 
@@ -214,9 +211,9 @@ public class EntitySuicideDrone extends Entity {
         directionZ = dz / distance;
     }
     public void explode() {
+        state = DroneState.DEAD;
         if (world.isRemote) return;
         world.createExplosion(this, posX, posY, posZ, EXPLOSION_RADIUS, true);
-        state = DroneState.DEAD;
         this.setDead();
     }
 
