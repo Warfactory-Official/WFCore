@@ -83,7 +83,7 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
                 builder.widget(new SlotWidget(inventory, index,
-                        (88 - rowSize * 9 + x * 18) + xOffset, 18 + y * 18, true, false)
+                        (88 - rowSize * 9 + x * 18) + xOffset, 18 + y * 18, true, true)
                         .setBackgroundTexture(GuiTextures.SLOT));
             }
         }

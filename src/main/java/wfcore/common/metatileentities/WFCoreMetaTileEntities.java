@@ -20,7 +20,8 @@ public class WFCoreMetaTileEntities {
     public static MetaTileEntityRadar RADAR;
     public static MetaTileEntityComputer COMPUTER;
     public static MetaTileEntityCPUSlot CPU_SLOT;
-    public static MetaTileEntityRAMSlot RAM_SLOT;
+    public static MetaTileEntityRAMSlot RAM_SLOT_MV;
+    public static MetaTileEntityRAMSlot RAM_SLOT_HV;
 
     public static int id = 10000;
 
@@ -33,7 +34,8 @@ public class WFCoreMetaTileEntities {
         RADAR = registerMetaTileEntity(id++, new MetaTileEntityRadar(location("radar")));
         COMPUTER = registerMetaTileEntity(id++, new MetaTileEntityComputer(location("computer"), COMPUTER_RECIPE_MAP));
         CPU_SLOT = registerMetaTileEntity(id++, new MetaTileEntityCPUSlot(location("cpu_slot"), GTValues.LV));
-//        RAM_SLOT = registerMetaTileEntity(id++, new MetaTileEntityCPUSlot(location("cpu_slot"), GTValues.LV));
+        RAM_SLOT_MV = registerMetaTileEntity(id++, new MetaTileEntityRAMSlot(location("ram_slot.mv"), GTValues.MV));
+        RAM_SLOT_HV = registerMetaTileEntity(id++, new MetaTileEntityRAMSlot(location("ram_slot.hv"), GTValues.HV));
     }
 
     private static ResourceLocation location(@NotNull String name) {

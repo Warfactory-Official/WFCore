@@ -36,7 +36,8 @@ wfcore.machine.radar.tooltip.1=Allows you to find enemy bases with ease
 wfcore.machine.radar.tooltip.2=§eNeeds skylight access, Y >= 100
 wfcore.machine.radar.tooltip.3=§eRequires EV power, computation
 wfcore.machine.radar.tooltip.4=§eReturns scrambled data, requires further processing
-wfcore.machine.radar.tooltip.5=§4Larpnet could never?
+wfcore.machine.radar.tooltip.5=§4Larpnet could never
+wfcore.machine.ram_slot.tooltip1=Controls throughput of your machine
 wfcore.multiblock.error.height_limit=Controller Y < 100!
 wfcore.multiblock.error.no_sky=Structure has no sky access!
 wfcore.gui.tooltips.data_stick_slot=Data Stick Slot
