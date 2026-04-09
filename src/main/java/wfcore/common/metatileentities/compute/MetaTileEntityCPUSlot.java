@@ -36,6 +36,7 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
         this.inventory = new GTItemStackHandler(this, 1) {
 
 
+            @Override
             protected int getStackLimit(int slot, @NotNull ItemStack stack) {
                 return 1;
             }

@@ -123,7 +123,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
 
     private ModularUI.Builder createUITemplate(EntityPlayer player, int count, int xOffset) {
         int guiWidth = 176 + xOffset * 2;
-        int guiHeight = 18 + 18 * (count - 1) + 94;
+        int guiHeight = 18 + 18 + 94;
 
         ModularUI.Builder builder = ModularUI.builder(GuiTextures.BACKGROUND, guiWidth, guiHeight)
                 .label(10, 5, getMetaFullName());
