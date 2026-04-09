@@ -43,7 +43,7 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
 
             @Override
             public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
-                return DataHolderRegistry.isAllowed(stack);
+                return CPURegistry.isCPU(stack);
             }
         };
     }
