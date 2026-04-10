@@ -28,7 +28,8 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import wfcore.common.items.registry.RAMRegistry;
-import wfcore.common.metatileentities.WFCoreMultiblockAbilityRegistry;
+import wfcore.common.metatileentities.WFCoreAbilities;
+import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
 
 import java.util.List;
 
@@ -53,8 +54,10 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
 
             @Override
             protected void onContentsChanged(int slot) {
-                recalculateThroughput();
                 super.onContentsChanged(slot);
+                recalculateThroughput();
+                if(getController() instanceof MetaTileEntityMainframe mainframe)
+                    mainframe.getGpcHandler().rebuild();
             }
 
             private void recalculateThroughput() {
@@ -123,7 +126,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
 
     @Override
     public MultiblockAbility<IRamSlot> getAbility() {
-        return WFCoreMultiblockAbilityRegistry.GPC_RAM_SLOT;
+        return WFCoreAbilities.GPC_RAM_SLOT;
     }
 
     @Override

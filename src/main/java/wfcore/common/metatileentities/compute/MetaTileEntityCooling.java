@@ -16,7 +16,7 @@ import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import wfcore.common.fluid.CoolantRegistry;
-import wfcore.common.metatileentities.WFCoreMultiblockAbilityRegistry;
+import wfcore.common.metatileentities.WFCoreAbilities;
 
 import java.util.List;
 
@@ -73,7 +73,7 @@ public class MetaTileEntityCooling extends MetaTileEntityMultiblockPart implemen
 
     @Override
     public MultiblockAbility<ICooler> getAbility() {
-        return WFCoreMultiblockAbilityRegistry.GPC_COOLER;
+        return WFCoreAbilities.GPC_COOLER;
     }
 
     @Override

@@ -9,22 +9,17 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
-import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import wfcore.common.items.registry.CPURegistry;
-import wfcore.common.items.registry.DataHolderRegistry;
-import wfcore.common.metatileentities.WFCoreMultiblockAbilityRegistry;
+import wfcore.common.metatileentities.WFCoreAbilities;
+import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -38,6 +33,13 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
     public MetaTileEntityCPUSlot(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
         this.inventory = new GTItemStackHandler(this, 1) {
+            @Override
+            protected void onContentsChanged(int slot) {
+                super.onContentsChanged(slot);
+                if(getController() instanceof MetaTileEntityMainframe mainframe)
+                    mainframe.getGpcHandler().rebuild();
+            }
+
 
 
             @Override
@@ -111,7 +113,7 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
 
     @Override
     public MultiblockAbility<ICpuSlot> getAbility() {
-        return WFCoreMultiblockAbilityRegistry.GPC_CPU_SLOT;
+        return WFCoreAbilities.GPC_CPU_SLOT;
     }
 
     @Override

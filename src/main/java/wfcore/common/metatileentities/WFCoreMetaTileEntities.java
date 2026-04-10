@@ -6,8 +6,10 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import wfcore.Reference;
 import wfcore.common.metatileentities.compute.MetaTileEntityCPUSlot;
+import wfcore.common.metatileentities.compute.MetaTileEntityCooling;
 import wfcore.common.metatileentities.compute.MetaTileEntityRAMSlot;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityComputer;
+import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 import wfcore.common.metatileentities.multi.primitive.MetaTileEntityWarfactoryBlastFurnace;
 
@@ -23,12 +25,11 @@ public class WFCoreMetaTileEntities {
     public static MetaTileEntityCPUSlot CPU_SLOT;
     public static MetaTileEntityRAMSlot RAM_SLOT_MV;
     public static MetaTileEntityRAMSlot RAM_SLOT_HV;
+    public static MetaTileEntityCooling PASSIVE_COOLER_MV;
+    public static MetaTileEntityCooling LIQUID_COOLER_MV;
+    public static MetaTileEntityMainframe MAINFRAME;
 
     public static int id = 10000;
-
-    static {
-    }
-
     public static void init() {
         //Multis
         LARGEBLASTFURNACE = registerMetaTileEntity(id++, new MetaTileEntityWarfactoryBlastFurnace(location("largeblastfurnace")));
@@ -37,6 +38,10 @@ public class WFCoreMetaTileEntities {
         CPU_SLOT = registerMetaTileEntity(id++, new MetaTileEntityCPUSlot(location("cpu_slot"), GTValues.LV));
         RAM_SLOT_MV = registerMetaTileEntity(id++, new MetaTileEntityRAMSlot(location("ram_slot.mv"), GTValues.MV));
         RAM_SLOT_HV = registerMetaTileEntity(id++, new MetaTileEntityRAMSlot(location("ram_slot.hv"), GTValues.HV));
+        PASSIVE_COOLER_MV = registerMetaTileEntity(id++, new MetaTileEntityCooling(location("cooler_passive.mv"), GTValues.MV,false));
+        LIQUID_COOLER_MV = registerMetaTileEntity(id++, new MetaTileEntityCooling(location("cooler_liquid.mv"), GTValues.MV,true));
+        MAINFRAME = registerMetaTileEntity(id++, new MetaTileEntityMainframe(location("mainframe")));
+
     }
 
     private static ResourceLocation location(@NotNull String name) {
