@@ -4,6 +4,7 @@ package wfcore.common.metatileentities;
 import gregtech.api.GTValues;
 import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
+import wfcore.Reference;
 import wfcore.common.metatileentities.compute.MetaTileEntityCPUSlot;
 import wfcore.common.metatileentities.compute.MetaTileEntityRAMSlot;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityComputer;
@@ -39,6 +40,6 @@ public class WFCoreMetaTileEntities {
     }
 
     private static ResourceLocation location(@NotNull String name) {
-        return new ResourceLocation("wfcore", name);
+        return new ResourceLocation(Reference.MODID, name);
     }
 }

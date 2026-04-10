@@ -3,7 +3,6 @@ package wfcore.common.metatileentities.compute;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.gui.widgets.AdvancedTextWidget;
@@ -15,7 +14,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
-import lombok.Getter;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -40,15 +38,9 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
     private final GTItemStackHandler inventory;
     private long totalThroughput;
 
-    private void addThroughputText(List<ITextComponent> textList) {
-        textList.add(new TextComponentTranslation("wfcore.gui.mainframe.throughput",
-                TextFormatting.LIGHT_PURPLE.toString() + totalThroughput));
-    }
-
-
     public MetaTileEntityRAMSlot(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
-        this.inventory = new GTItemStackHandler(this, Math.max(1, tier - 1)){
+        this.inventory = new GTItemStackHandler(this, Math.max(1, tier - 1)) {
             @Override
             public int getSlotLimit(int slot) {
                 return 1;
@@ -67,8 +59,8 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
 
             private void recalculateThroughput() {
                 int throughput = 0;
-                for(ItemStack stack : this.stacks){
-                    if(RAMRegistry.isRAM(stack)){
+                for (ItemStack stack : this.stacks) {
+                    if (RAMRegistry.isRAM(stack)) {
                         throughput += RAMRegistry.getEntry(stack).throughput();
                     }
                 }
@@ -81,6 +73,11 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
         };
     }
 
+    private void addThroughputText(List<ITextComponent> textList) {
+        textList.add(new TextComponentTranslation("wfcore.gui.mainframe.throughput",
+                TextFormatting.LIGHT_PURPLE.toString() + totalThroughput));
+    }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityRAMSlot(metaTileEntityId, getTier());
@@ -90,6 +87,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
     public void update() {
         super.update();
     }
+
     @Override
     public void receiveCustomData(int dataId, PacketBuffer buf) {
         super.receiveCustomData(dataId, buf);
@@ -125,7 +123,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
 
     @Override
     public MultiblockAbility<IRamSlot> getAbility() {
-        return WFCoreMultiblockAbilityRegistry.RAM_SLOT;
+        return WFCoreMultiblockAbilityRegistry.GPC_RAM_SLOT;
     }
 
     @Override

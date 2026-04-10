@@ -10,6 +10,7 @@ import wfcore.common.commands.WfCoreCommands;
 import wfcore.common.config.RadarConfig;
 import wfcore.common.drones.DroneRegistry;
 import wfcore.common.events.RegistryEvents;
+import wfcore.common.fluid.CoolantRegistry;
 import wfcore.common.items.registry.CPURegistry;
 import wfcore.common.items.registry.RAMRegistry;
 import wfcore.common.network.SPacketUpdateRenderMask;
@@ -40,6 +41,7 @@ public class CommonProxy {
     public void postInit(FMLPostInitializationEvent event) {
         CPURegistry.register();
         RAMRegistry.register();
+        CoolantRegistry.register();
     }
 
     public final void serverStarting(FMLServerStartingEvent event) {

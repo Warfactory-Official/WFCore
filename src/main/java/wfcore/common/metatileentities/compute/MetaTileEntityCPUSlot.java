@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import wfcore.common.items.registry.CPURegistry;
 import wfcore.common.items.registry.DataHolderRegistry;
+import wfcore.common.metatileentities.WFCoreMultiblockAbilityRegistry;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -110,11 +111,12 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
 
     @Override
     public MultiblockAbility<ICpuSlot> getAbility() {
-        return null;
+        return WFCoreMultiblockAbilityRegistry.GPC_CPU_SLOT;
     }
 
     @Override
     public void registerAbilities(List<ICpuSlot> abilityList) {
+        abilityList.add(this);
 
     }
 

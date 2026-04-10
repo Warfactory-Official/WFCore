@@ -46,6 +46,9 @@ wfcore.gui.info.status.insert.datastick=Please insert data storage device into t
 wfcore.gui.info.status.saved=Raw Scan data has been saved to the data device!
 wfcore.gui.info.status.total_time="Scan will take %d seconds"
 wfcore.gui.mainframe.throughput=Total throughput: %s CWU/t
+wfcore.machine.ram_slot.mv.name=Single channel ram socket
+wfcore.machine.ram_slot.hv.name=Dual channel ram socket
+wfcore.machine.cpu_slot.name=Mainframe CPU Socket
 
 
 
