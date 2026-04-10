@@ -1,5 +1,8 @@
 package wfcore.common.metatileentities.compute;
 
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.gui.widgets.SlotWidget;
@@ -9,14 +12,17 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
+import lombok.SneakyThrows;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import wfcore.client.render.WFTextures;
 import wfcore.common.items.registry.CPURegistry;
 import wfcore.common.metatileentities.WFCoreAbilities;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
@@ -26,8 +32,8 @@ import java.util.List;
 
 public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implements ICpuSlot, IMultiblockAbilityPart<ICpuSlot> {
 
+    private static final int SYNC_TEXTURE = 8456;
     private final GTItemStackHandler inventory;
-
 
 
     public MetaTileEntityCPUSlot(ResourceLocation metaTileEntityId, int tier) {
@@ -36,10 +42,10 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
             @Override
             protected void onContentsChanged(int slot) {
                 super.onContentsChanged(slot);
-                if(getController() instanceof MetaTileEntityMainframe mainframe)
+                writeCustomData(SYNC_TEXTURE, buf -> buf.writeItemStack(this.getStackInSlot(0)));
+                if (getController() instanceof MetaTileEntityMainframe mainframe)
                     mainframe.getGpcHandler().rebuild();
             }
-
 
 
             @Override
@@ -80,6 +86,14 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
                 .build(getHolder(), entityPlayer);
     }
 
+    @Override
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        if (this.getStats() != null)
+            WFTextures.OVERLAY_CPU_SLOT_FILLED.renderSided(getFrontFacing(), renderState, translation, pipeline);
+        else
+            WFTextures.OVERLAY_CPU_SLOT.renderSided(getFrontFacing(), renderState, translation, pipeline);
+    }
 
     private ModularUI.Builder createUITemplate(EntityPlayer player, int rowSize, int xOffset) {
         ModularUI.Builder builder = ModularUI.builder(GuiTextures.BACKGROUND, 176 + xOffset * 2,
@@ -97,6 +111,13 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
         return builder.bindPlayerInventory(player.inventory, GuiTextures.SLOT, 7 + xOffset, 18 + 18 * rowSize + 12);
     }
 
+    @SneakyThrows
+    @Override
+    public void receiveCustomData(int dataId, PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+        if (dataId == SYNC_TEXTURE)
+            this.inventory.setStackInSlot(0, buf.readItemStack());
+    }
 
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {

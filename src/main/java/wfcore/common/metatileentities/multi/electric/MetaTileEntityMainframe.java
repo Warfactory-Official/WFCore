@@ -19,6 +19,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
+import wfcore.client.render.WFTextures;
 import wfcore.common.blocks.BlockMetalSheetCasing;
 import wfcore.common.blocks.BlockRegistry;
 import wfcore.common.items.registry.CPURegistry;
@@ -92,12 +93,12 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
 
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return null;
+        return WFTextures.ALU_SHEET;
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return null;
+        return new MetaTileEntityMainframe(metaTileEntityId);
     }
     @Override
     public boolean isActive() {
@@ -118,9 +119,9 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
         return states(BlockRegistry.SHEET_CASING.getState(BlockMetalSheetCasing.MetalSheetCasingType.ALUMINIUM_SHEET_CASING));
     }
     protected TraceabilityPredicate mainframeComponents() {
-        return abilities(WFCoreAbilities.GPC_CPU_SLOT)
-                .or(abilities(WFCoreAbilities.GPC_COOLER))
-                .or(abilities(WFCoreAbilities.GPC_RAM_SLOT));
+        return abilities(WFCoreAbilities.GPC_CPU_SLOT).setMinGlobalLimited(1)
+                .or(abilities(WFCoreAbilities.GPC_COOLER).setPreviewCount(6))
+                .or(abilities(WFCoreAbilities.GPC_RAM_SLOT).setMinGlobalLimited(1,2));
     }
 
     @Override
@@ -128,8 +129,7 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
         return FactoryBlockPattern.start()
                 .aisle("AA", "CC", "CC", "CC", "AA")
                 .aisle("VA", "XV", "XV", "XV", "VA")
-                .aisle("VA", "XV", "XV", "XV", "VA")
-                .aisle("VA", "XV", "XV", "XV", "VA")
+                .setRepeatable(2,6)
                 .aisle("SA", "CC", "CC", "CC", "AA")
                 .where('S', selfPredicate())
                 .where('A', aluCasing())

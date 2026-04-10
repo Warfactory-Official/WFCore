@@ -12,6 +12,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 import net.minecraft.client.resources.I18n;
@@ -38,6 +39,7 @@ public class MetaTileEntityRAMSlot extends MetaTileEntityMultiblockPart implemen
 
     private final GTItemStackHandler inventory;
     private long totalThroughput;
+
 
     public MetaTileEntityRAMSlot(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);

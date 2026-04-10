@@ -1,11 +1,15 @@
 package wfcore.client.render;
 
+import com.modularmods.mcgltf.RenderedGltfModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL30;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.common.te.TERegistry;
 
@@ -50,13 +54,14 @@ public class AnimatedRenderQueue {
         double camY = rm.viewerPosY;
         double camZ = rm.viewerPosZ;
 
+        //Note: this is fully safe, since I basically clear the state
+        //Sure I am the USE GLSTATEMANAGER guy, but this should be fine, trust me
         Minecraft.getMinecraft().entityRenderer.enableLightmap();
-        GlStateManager.disableBlend();
-        GlStateManager.enableAlpha();
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        GlStateManager.enableRescaleNormal();
-
-        GlStateManager.shadeModel(org.lwjgl.opengl.GL11.GL_SMOOTH);
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glShadeModel(GL11.GL_SMOOTH);
+        GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
         for (int i = 0; i < activeCount; i++) {
             IAnimatedMTE mte = pool[i];
@@ -72,23 +77,13 @@ public class AnimatedRenderQueue {
                 pool[i] = null;
             }
         }
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
+        GL30.glBindVertexArray(0);
+        GL11.glPopAttrib();
 
 
-        //Hopefully this will prevent minecraft from shitting itself
-        net.minecraft.client.renderer.OpenGlHelper.glUseProgram(0);
 
-        GlStateManager.shadeModel(org.lwjgl.opengl.GL11.GL_FLAT);
-
-        GlStateManager.setActiveTexture(net.minecraft.client.renderer.OpenGlHelper.defaultTexUnit);
-        GlStateManager.enableTexture2D();
-
-        //Unbind VBOs (Stops particles from reading GLTF memory)
-        net.minecraft.client.renderer.OpenGlHelper.glBindBuffer(
-                net.minecraft.client.renderer.OpenGlHelper.GL_ARRAY_BUFFER, 0);
-
-        GlStateManager.disableBlend();
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        GlStateManager.disableRescaleNormal();
         Minecraft.getMinecraft().entityRenderer.disableLightmap();
 
         activeCount = 0;
