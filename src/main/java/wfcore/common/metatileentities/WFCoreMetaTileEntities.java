@@ -10,6 +10,7 @@ import wfcore.common.metatileentities.compute.MetaTileEntityCooling;
 import wfcore.common.metatileentities.compute.MetaTileEntityRAMSlot;
 import wfcore.common.metatileentities.electric.MetaTileEntityPrinter;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityComputer;
+import wfcore.common.metatileentities.multi.electric.MetaTileEntityLightGroundVehicleFactory;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 import wfcore.common.metatileentities.multi.primitive.MetaTileEntityWarfactoryBlastFurnace;
@@ -30,6 +31,7 @@ public class WFCoreMetaTileEntities {
     public static MetaTileEntityCooling LIQUID_COOLER_MV;
     public static MetaTileEntityMainframe MAINFRAME;
     public static MetaTileEntityPrinter PRINTER;
+    public static MetaTileEntityLightGroundVehicleFactory LIGHT_GROUND_VEHICLE_FACTORY;
 
     public static int id = 10000;
     public static void init() {
@@ -44,6 +46,8 @@ public class WFCoreMetaTileEntities {
         LIQUID_COOLER_MV = registerMetaTileEntity(id++, new MetaTileEntityCooling(location("cooler_liquid.mv"), GTValues.MV,true));
         MAINFRAME = registerMetaTileEntity(id++, new MetaTileEntityMainframe(location("mainframe")));
         PRINTER = registerMetaTileEntity(id++, new MetaTileEntityPrinter(location("printer"), GTValues.EV));
+        LIGHT_GROUND_VEHICLE_FACTORY = registerMetaTileEntity(id++,
+                new MetaTileEntityLightGroundVehicleFactory(location("light_ground_vehicle_factory")));
 
     }
 

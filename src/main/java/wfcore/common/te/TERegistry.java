@@ -9,6 +9,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import wfcore.Reference;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.api.metatileentity.MteRenderer;
+import wfcore.common.metatileentities.multi.electric.MetaTileEntityLightGroundVehicleFactory;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 import wfcore.common.render.AnimatablePartRenderer;
 import wfcore.common.render.GenericGLTF;
@@ -26,6 +27,9 @@ public class TERegistry {
         ClientRegistry.bindTileEntitySpecialRenderer(AnimatablePartTileEntity.class, new AnimatablePartRenderer());
         registerRenderer(MetaTileEntityRadar.class, new GenericGLTF<>(
                 new ResourceLocation(Reference.MODID, "model/radar.gltf")
+        ));
+        registerRenderer(MetaTileEntityLightGroundVehicleFactory.class, new GenericGLTF<>(
+                new ResourceLocation(Reference.MODID, "model/vehicle_factory.gltf")
         ));
 
 

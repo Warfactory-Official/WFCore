@@ -7,6 +7,7 @@ wfcore.machine.projector.tooltip=The physical culmination of your journey has th
 wfcore.machine.radar.name=Radar
 wfcore.machine.printer.name=Data Printer
 wfcore.machine.printer.tooltip=§ePrints a written report of bases found in radar scan data
+wfcore.machine.light_ground_vehicle_factory.name=MV Light Ground Vehicle Factory
 wfcore.machine.computer.name=Computer
 item.eight_carrot.name=Burnt Carrot
 wfcore.machine.largesteamforgehammer.name=Large Steam Forge Hammer

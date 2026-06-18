@@ -5,6 +5,7 @@ import gregtech.api.gui.widgets.ProgressWidget;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecyclingHandler;
 import gregtech.api.recipes.builders.AssemblerRecipeBuilder;
+import gregtech.api.recipes.builders.SimpleRecipeBuilder;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.MarkerMaterials;
 import gregtech.api.unification.material.Materials;
@@ -27,6 +28,11 @@ public class WFCoreMachineRecipes {
             new ComputerRecipeBuilder(), false)
             .setSlotOverlay(false, false, GuiTextures.CIRCUIT_OVERLAY)
             .setProgressBar(GuiTextures.PROGRESS_BAR_CIRCUIT, ProgressWidget.MoveType.HORIZONTAL)
+            .setSound(GTSoundEvents.ASSEMBLER);
+
+
+    public static final RecipeMap<SimpleRecipeBuilder> VEHICLE_ASSEMBLER = new RecipeMap<>(
+            "vehicle_assembler", 9, 1, 2, 0, new SimpleRecipeBuilder(), false)
             .setSound(GTSoundEvents.ASSEMBLER);
 
     public static void initRecipes() {
