@@ -7,6 +7,8 @@ import com.google.common.collect.Lists;
 import com.hbm.blocks.ModBlocks;
 import gregtech.api.GTValues;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IOpticalComputationHatch;
+import gregtech.api.capability.IOpticalComputationProvider;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
@@ -92,6 +94,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     private static final int SYNC_RADAR_STATE = 901;
     private static final int SYNC_RADAR_FINISHED = 903;
     private static final int tier = GTValues.EV;
+    private static final int BASE_CWUT = 4; // arbitrary; scales up with voltage tier
 
     static {
         final int animatedLayerIndex = 22;
@@ -147,6 +150,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     private final Collection<BlockPos> ANIMATED_BLOCKS;
     @Getter
     protected IEnergyContainer energyContainer;
+    private IOpticalComputationProvider computationProvider;
     @Getter
     private String animState = "idle";
     @Getter
@@ -207,6 +211,12 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     protected void addWarningText(List<ITextComponent> textList) {
         MultiblockDisplayText.builder(textList, isStructureFormed(), false)
                 .addLowPowerLine(logic.isHasNotEnoughEnergy())
+                .addCustom(tl -> {
+                    if (logic.isHasNotEnoughComputation()) {
+                        tl.add(TextComponentUtil.translationWithColor(TextFormatting.RED,
+                                "wfcore.gui.info.status.no_computation"));
+                    }
+                })
                 .addMaintenanceProblemLines(getMaintenanceProblems());
     }
 
@@ -237,6 +247,20 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
             return true;
         }
         return false;
+    }
+
+    /** CWU/t the radar needs to scan. Arbitrary base that rises with the energy voltage tier. */
+    public int getRequiredCWUt() {
+        int tier = Math.max(GTValues.EV, getTier());
+        return BASE_CWUT << (tier - GTValues.EV); // EV=4, IV=8, LuV=16, ZPM=32, ...
+    }
+
+    /** Requests this tick's required computation from the connected reception hatch. */
+    public boolean requestComputation(boolean simulate) {
+        int required = getRequiredCWUt();
+        if (required <= 0) return true;
+        if (computationProvider == null) return false;
+        return computationProvider.requestCWUt(required, simulate) >= required;
     }
 
     @Override
@@ -471,10 +495,13 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
     protected void initializeAbilities() {
         this.energyContainer = new EnergyContainerList(getAbilities(MultiblockAbility.INPUT_ENERGY));
+        List<IOpticalComputationHatch> hatches = getAbilities(MultiblockAbility.COMPUTATION_DATA_RECEPTION);
+        this.computationProvider = hatches.isEmpty() ? null : hatches.get(0);
     }
 
     private void resetTileAbilities() {
         this.energyContainer = new EnergyContainerList(Lists.newArrayList());
+        this.computationProvider = null;
     }
 
     @Override
@@ -513,6 +540,8 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
 
                     if (!this.isStructureFormed()) return;
 
+                    tl.add(TextComponentUtil.translationWithColor(TextFormatting.AQUA,
+                            "wfcore.gui.info.computation_required", getRequiredCWUt()));
 
                     boolean isScanning = logic.isActive();
 

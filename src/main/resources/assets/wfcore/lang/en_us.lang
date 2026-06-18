@@ -48,6 +48,8 @@ wfcore.gui.info.status.ready=Ready!
 wfcore.gui.info.status.insert.datastick=Please insert data storage device into the slot below!
 wfcore.gui.info.status.saved=Raw Scan data has been saved to the data device!
 wfcore.gui.info.status.total_time="Scan will take %d seconds"
+wfcore.gui.info.status.no_computation=Not enough computation!
+wfcore.gui.info.computation_required=Requires %s CWU/t
 wfcore.gui.mainframe.throughput=Total throughput: %s CWU/t
 wfcore.machine.ram_slot.mv.name=Single channel ram socket
 wfcore.machine.ram_slot.hv.name=Dual channel ram socket
@@ -98,3 +100,40 @@ wfcore.data.bit_or_bits=bit(s)
 # gommers shenanigans
 item.hbm.ingot_asbestos.name=Asbestos Ingot
 death.attack.asbestos=%1$s ascended to the great insulation warehouse in the sky
+
+# research unit (3x3x3 multiblock)
+wfcore.machine.research_unit.name=Research Unit
+wfcore.machine.research_unit.tooltip1=3x3x3 multiblock. Researches using CWU from a Mainframe, EU/t and materials
+wfcore.machine.research_unit.tooltip2=Needs a Computation Reception Hatch, Item Input Bus, Energy Input; Data Access Hatch optional
+wfcore.machine.research_unit.tooltip3=Right-click for the research tree; screwdriver toggles Control/Slave. Slaves next to a Control unit add parallel research
+
+# research GUI
+wfcore.gui.research.title=Research Tree
+wfcore.gui.research.not_formed=Structure is not formed
+wfcore.gui.research.slave_mode=Slave mode - adds capacity to an adjacent Control unit
+wfcore.gui.research.select_hint=Select a research
+wfcore.gui.research.runs=Runs: %s
+wfcore.gui.research.cwu_per_run=CWU per run: %s
+wfcore.gui.research.per_run=Per run:
+wfcore.gui.research.total=Total:
+wfcore.gui.research.unlocks=Unlocks:
+wfcore.gui.research.queue=Queue:
+wfcore.gui.research.start=Start Research
+wfcore.gui.research.cancel=Cancel Research
+
+# research JEI/HEI
+wfcore.jei.research.title=Research
+wfcore.jei.runs=Runs: %s
+wfcore.jei.cwu=CWU/run: %s
+wfcore.jei.eut=Power: %s EU/t
+wfcore.jei.total_cwu=Total CWU: %s
+
+# researches
+wfcore.research.basic_electronics.name=Basic Electronics
+wfcore.research.basic_electronics.desc=Foundational electronic components.
+wfcore.research.advanced_circuits.name=Advanced Circuits
+wfcore.research.advanced_circuits.desc=Higher-density integrated circuitry.
+wfcore.research.sensor_arrays.name=Sensor Arrays
+wfcore.research.sensor_arrays.desc=Detection and targeting sensors.
+wfcore.research.fire_control_systems.name=Fire Control Systems
+wfcore.research.fire_control_systems.desc=Coordinated targeting and fire control.

@@ -52,6 +52,8 @@ import java.util.function.Supplier;
 public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
         implements IOpticalComputationProvider, IControllable, IProgressBarMultiblock {
 
+    private static final double MAX_TEMP = 105.0;
+
     @Getter
     private final GPCHandler gpcHandler;
     private final ProgressWidget.TimedProgressSupplier progressSupplier;
@@ -189,16 +191,19 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
     }
     @Override
     protected void updateFormedValid() {
-        if (isWorkingEnabled()) {
-            consumeEnergy();
-        } else {
+        if (!isWorkingEnabled()) {
             setActive(false);
+            currentTemp = Math.max(AMBIENT, currentTemp - 0.25);
+            this.currentCWU = 0;
+            gpcHandler.clearAllocation();
+            return;
         }
 
-        if (isActive) {
-            long idealCWU = gpcHandler.getMaxCWUt();
-            long energyUsed = gpcHandler.getCurrentEUt();
+        // roll the previous tick's demand into the allocation, then bill energy for it
+        gpcHandler.tick();
+        consumeEnergy();
 
+        if (isActive) {
             double temperatureChange = gpcHandler.calculateTemperatureChange(currentTemp >= 70.0);
 
             if (currentTemp + temperatureChange <= AMBIENT) {
@@ -207,11 +212,10 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
                 currentTemp += temperatureChange;
             }
 
-            if (currentTemp >= 105.0) {
+            if (currentTemp >= MAX_TEMP) {
                 this.explodeMultiblock(10);
             }
 
-            gpcHandler.tick(idealCWU, energyUsed);
             this.currentCWU = gpcHandler.getAllocatedCWUt();
         } else {
             currentTemp = Math.max(AMBIENT, currentTemp - 0.25);
@@ -229,14 +233,14 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
 
     @Override
     public int requestCWUt(int cwut, boolean simulate, @NotNull Collection<IOpticalComputationProvider> seen) {
-        if (!isActive() || hasNotEnoughEnergy) return 0;
-        int available = (int) this.currentCWU;
-        return Math.min(cwut, available);
+        if (!isActive() || !isWorkingEnabled() || hasNotEnoughEnergy) return 0;
+        return gpcHandler.requestComputation(cwut, simulate);
     }
 
     @Override
     public int getMaxCWUt(@NotNull Collection<IOpticalComputationProvider> seen) {
-        return (int) this.currentCWU;
+        if (!isActive() || !isWorkingEnabled() || hasNotEnoughEnergy) return 0;
+        return (int) gpcHandler.getProvidableCWUt();
     }
 
     @Override
@@ -247,25 +251,6 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return WFTextures.ALU_SHEET;
-    }
-
-    @Override
-    protected ModularUI createUI(EntityPlayer entityPlayer) {
-        IProgressBarMultiblock progressMulti = this;
-        return ModularUI.builder(GuiTextures.BACKGROUND, 176, 166)
-                .label(10, 5, getMetaFullName())
-                .widget(new ProgressWidget(
-                        () -> progressMulti.getFillPercentage(0),
-                        10, 20, 10, 60,
-                        progressMulti.getProgressBarTexture(0), ProgressWidget.MoveType.VERTICAL)
-                        .setHoverTextConsumer(list -> progressMulti.addBarHoverText(list, 0)))
-                .widget(new ProgressWidget(
-                        () -> progressMulti.getFillPercentage(1),
-                        150, 20, 10, 60,
-                        progressMulti.getProgressBarTexture(1), ProgressWidget.MoveType.VERTICAL)
-                        .setHoverTextConsumer(list -> progressMulti.addBarHoverText(list, 1)))
-                .bindPlayerInventory(entityPlayer.inventory)
-                .build(getHolder(), entityPlayer);
     }
 
     @Override
@@ -290,7 +275,7 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
             this.isWorkingEnabled = buf.readBoolean();
             scheduleRenderUpdate();
         } else if (dataId == GregtechDataCodes.CACHED_CWU) {
-            gpcHandler.cachedCWUt = buf.readInt();
+            gpcHandler.cachedCWUt = buf.readLong();
         }
     }
 
@@ -443,6 +428,7 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
         private long[] cpuLimits;
         @Getter
         private long allocatedCWUt;
+        private long requestedCWUtThisTick;
         private long cachedCWUt;
         private long cachedEUt;
         @Getter
@@ -455,12 +441,12 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
             reset();
         }
 
-        public void tick(long idealCWU, long energyUsed) {
+        // rolls the demand collected since the last tick into the active allocation
+        public void tick() {
             this.currentSag = calculateSag();
 
-            long thermallyThrottledCWU = (long) (idealCWU * (1.0 - this.currentSag));
-
-            this.allocatedCWUt = Math.min(thermallyThrottledCWU, this.totalThroughput);
+            this.allocatedCWUt = Math.min(this.requestedCWUtThisTick, getProvidableCWUt());
+            this.requestedCWUtThisTick = 0;
 
             if (cachedCWUt != allocatedCWUt) {
                 this.cachedCWUt = allocatedCWUt;
@@ -468,7 +454,22 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
                     mainframe.writeCustomData(GregtechDataCodes.CACHED_CWU, buf -> buf.writeLong(cachedCWUt));
                 }
             }
-            this.cachedEUt = energyUsed;
+            this.cachedEUt = getCurrentEUt();
+        }
+
+        // the most CWU/t this mainframe can hand out right now (thermal sag + memory throughput capped)
+        public long getProvidableCWUt() {
+            long thermal = (long) (getMaxCWUt() * (1.0 - this.currentSag));
+            return Math.max(0L, Math.min(thermal, this.totalThroughput));
+        }
+
+        public int requestComputation(int cwut, boolean simulate) {
+            if (cwut <= 0) return 0;
+            long remaining = getProvidableCWUt() - this.requestedCWUtThisTick;
+            if (remaining <= 0) return 0;
+            int granted = (int) Math.min((long) cwut, remaining);
+            if (!simulate) this.requestedCWUtThisTick += granted;
+            return granted;
         }
 
         private double calculateSag() {
@@ -499,6 +500,7 @@ public class MetaTileEntityMainframe extends MultiblockWithDisplayBase
 
         public void clearAllocation() {
             this.allocatedCWUt = 0;
+            this.requestedCWUtThisTick = 0;
         }
 
         public long getCurrentEUt() {

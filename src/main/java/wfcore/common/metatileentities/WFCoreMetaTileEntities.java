@@ -13,6 +13,7 @@ import wfcore.common.metatileentities.multi.electric.MetaTileEntityComputer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityLightGroundVehicleFactory;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
+import wfcore.common.metatileentities.research.MetaTileEntityResearchUnit;
 import wfcore.common.metatileentities.multi.primitive.MetaTileEntityWarfactoryBlastFurnace;
 
 import static gregtech.common.metatileentities.MetaTileEntities.registerMetaTileEntity;
@@ -30,6 +31,7 @@ public class WFCoreMetaTileEntities {
     public static MetaTileEntityCooling PASSIVE_COOLER_MV;
     public static MetaTileEntityCooling LIQUID_COOLER_MV;
     public static MetaTileEntityMainframe MAINFRAME;
+    public static MetaTileEntityResearchUnit RESEARCH_UNIT;
     public static MetaTileEntityPrinter PRINTER;
     public static MetaTileEntityLightGroundVehicleFactory LIGHT_GROUND_VEHICLE_FACTORY;
 
@@ -45,6 +47,7 @@ public class WFCoreMetaTileEntities {
         PASSIVE_COOLER_MV = registerMetaTileEntity(id++, new MetaTileEntityCooling(location("cooler_passive.mv"), GTValues.MV,false));
         LIQUID_COOLER_MV = registerMetaTileEntity(id++, new MetaTileEntityCooling(location("cooler_liquid.mv"), GTValues.MV,true));
         MAINFRAME = registerMetaTileEntity(id++, new MetaTileEntityMainframe(location("mainframe")));
+        RESEARCH_UNIT = registerMetaTileEntity(id++, new MetaTileEntityResearchUnit(location("research_unit")));
         PRINTER = registerMetaTileEntity(id++, new MetaTileEntityPrinter(location("printer"), GTValues.EV));
         LIGHT_GROUND_VEHICLE_FACTORY = registerMetaTileEntity(id++,
                 new MetaTileEntityLightGroundVehicleFactory(location("light_ground_vehicle_factory")));

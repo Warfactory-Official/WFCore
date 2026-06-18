@@ -1,5 +1,6 @@
 package wfcore.common.proxy;
 
+import com.cleanroommc.modularui.factory.GuiManager;
 import gregtech.api.GregTechAPI;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraftforge.common.MinecraftForge;
@@ -11,6 +12,7 @@ import wfcore.common.config.RadarConfig;
 import wfcore.common.drones.DroneRegistry;
 import wfcore.common.events.RegistryEvents;
 import wfcore.common.fluid.CoolantRegistry;
+import wfcore.common.gui.WFGuiFactory;
 import wfcore.common.items.registry.CPURegistry;
 import wfcore.common.items.registry.RAMRegistry;
 import wfcore.common.network.SPacketUpdateRenderMask;
@@ -23,6 +25,7 @@ public class CommonProxy {
 
     public void preInit(FMLPreInitializationEvent event) {
         GregTechAPI.networkHandler.registerPacket(SPacketUpdateRenderMask.class);
+        GuiManager.registerFactory(WFGuiFactory.INSTANCE);
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new RegistryEvents());
         MinecraftForge.EVENT_BUS.register(Retrofitter.INSTANCE);
@@ -42,6 +45,7 @@ public class CommonProxy {
         CPURegistry.register();
         RAMRegistry.register();
         CoolantRegistry.register();
+        wfcore.common.research.WFResearches.register();
     }
 
     public final void serverStarting(FMLServerStartingEvent event) {

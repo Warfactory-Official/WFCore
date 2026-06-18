@@ -28,9 +28,9 @@ public class TERegistry {
         registerRenderer(MetaTileEntityRadar.class, new GenericGLTF<>(
                 new ResourceLocation(Reference.MODID, "model/radar.gltf")
         ));
-        registerRenderer(MetaTileEntityLightGroundVehicleFactory.class, new GenericGLTF<>(
-                new ResourceLocation(Reference.MODID, "model/vehicle_factory.gltf")
-        ));
+//        registerRenderer(MetaTileEntityLightGroundVehicleFactory.class, new GenericGLTF<>(
+//                new ResourceLocation(Reference.MODID, "model/vehicle_factory.gltf")
+//        ));
 
 
     }

@@ -181,7 +181,7 @@ public class MetaTileEntityComputer extends RecipeMapMultiblockController {
 
         // update tick counter
         ++tickCounter;
-        tickCounter &= 1L << 63;
+        tickCounter &= Long.MAX_VALUE;
 
         // only update once a second
         if (tickCounter % 20 != 0) { return; }

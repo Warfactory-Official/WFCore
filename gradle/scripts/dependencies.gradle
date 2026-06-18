@@ -49,7 +49,8 @@ dependencies {
     modImplementation('gregtech:gregtech:2.8.10-beta') { transitive = false }
     modImplementation('gregicality:GregicalityMultiblocks:1.2.11') { transitive = false }
     modImplementation "io.gitlab.hohserg.elegant.networking:elegant-networking-1.12:3.14"
-    modImplementation('com.cleanroommc:modularui:3.0.5') { transitive = false }
+    modImplementation('com.cleanroommc:modularui:3.1.6') { transitive = false }
+    modCompileOnly('com.cleanroommc:groovyscript:1.3.3') { transitive = false }
     modImplementation "curse.maven:mcgltf-591547:4367036"
     modImplementation 'curse.maven:journeymap-32274:5172461'
     modImplementation 'curse.maven:the-one-probe-245211:2667280'

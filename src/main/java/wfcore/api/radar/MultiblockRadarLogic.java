@@ -36,6 +36,8 @@ public class MultiblockRadarLogic {
     public boolean finished = false;
     @Getter
     protected boolean hasNotEnoughEnergy;
+    @Getter
+    protected boolean hasNotEnoughComputation;
     private int voltageTier;
     @Getter
     @Setter
@@ -158,7 +160,15 @@ public class MultiblockRadarLogic {
         if (!checkCanDrain())
             return false;
 
+        // computation gate - stall (without burning energy) when the network can't supply enough CWU/t
+        if (!metaTileEntity.requestComputation(true)) {
+            this.hasNotEnoughComputation = true;
+            return false;
+        }
+        this.hasNotEnoughComputation = false;
+
         consumeEnergy(false);
+        metaTileEntity.requestComputation(false);
 
         if (scanProgress <= targetTicks)
             scanProgress++;
@@ -221,7 +231,7 @@ public class MultiblockRadarLogic {
     }
 
     public boolean canScan() {
-        return !metaTileEntity.getWorld().isRemote && metaTileEntity.hasDataStick() && metaTileEntity.isStructureFormed() && canWork && !isActive && consumeEnergy(true);
+        return !metaTileEntity.getWorld().isRemote && metaTileEntity.hasDataStick() && metaTileEntity.isStructureFormed() && canWork && !isActive && consumeEnergy(true) && metaTileEntity.requestComputation(true);
     }
 
     public int getScanDurationTicks() {

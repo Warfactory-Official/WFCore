@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 public class DataHandler {
     // do not change the id's used here or else pre-existing saves will lose data
+    // new entries must be APPENDED to preserve existing ordinals
     public enum DataClassIdentifier {
         CLUSTER_DATA(ClusterData.class);
 
