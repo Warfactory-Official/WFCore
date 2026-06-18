@@ -80,6 +80,8 @@ public class CPURegistry {
             long maxPower,     // Max power draw (EU/t)
             long minPower      // Idle/Baseline power draw (EU/t)
     ) {
+        private static final double EU_TO_HEAT_RATIO = 0.05;
+
         public double getCurrentEfficency(long power) {
             if (power < minPower) return 0;
             double load = (double) (power - minPower) / (maxPower - power);
@@ -88,16 +90,17 @@ public class CPURegistry {
         }
 
 
-        public long getCWU(long power, double currentTemp) {
-            double tempPenalty = 0;
-            if (currentTemp > 90) ;
-            tempPenalty = Math.pow((currentTemp - 90) / 10, 2) * 0.5;
-            double eff = Math.max(0.01, getCurrentEfficency(power) - tempPenalty);
-            return (long) (power * eff);
+        public long getCWU(long power) {
+            return (long) (power * getCurrentEfficency(power));
         }
 
-        public long getHeat(long power, double currentTemp) {
-            return power - getCWU(power, currentTemp);
+        public long getMaxCWU() {
+            return (long) (maxPower * efficiency);
+        }
+
+        public double getHeat(long power) {
+            long wasteEU = power - getCWU(power);
+            return wasteEU * EU_TO_HEAT_RATIO;
         }
 
     }

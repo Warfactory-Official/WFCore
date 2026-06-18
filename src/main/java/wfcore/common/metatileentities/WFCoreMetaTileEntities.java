@@ -8,6 +8,7 @@ import wfcore.Reference;
 import wfcore.common.metatileentities.compute.MetaTileEntityCPUSlot;
 import wfcore.common.metatileentities.compute.MetaTileEntityCooling;
 import wfcore.common.metatileentities.compute.MetaTileEntityRAMSlot;
+import wfcore.common.metatileentities.electric.MetaTileEntityPrinter;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityComputer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
@@ -28,6 +29,7 @@ public class WFCoreMetaTileEntities {
     public static MetaTileEntityCooling PASSIVE_COOLER_MV;
     public static MetaTileEntityCooling LIQUID_COOLER_MV;
     public static MetaTileEntityMainframe MAINFRAME;
+    public static MetaTileEntityPrinter PRINTER;
 
     public static int id = 10000;
     public static void init() {
@@ -41,6 +43,7 @@ public class WFCoreMetaTileEntities {
         PASSIVE_COOLER_MV = registerMetaTileEntity(id++, new MetaTileEntityCooling(location("cooler_passive.mv"), GTValues.MV,false));
         LIQUID_COOLER_MV = registerMetaTileEntity(id++, new MetaTileEntityCooling(location("cooler_liquid.mv"), GTValues.MV,true));
         MAINFRAME = registerMetaTileEntity(id++, new MetaTileEntityMainframe(location("mainframe")));
+        PRINTER = registerMetaTileEntity(id++, new MetaTileEntityPrinter(location("printer"), GTValues.EV));
 
     }
 

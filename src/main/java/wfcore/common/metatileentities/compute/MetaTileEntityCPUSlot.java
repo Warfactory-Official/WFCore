@@ -150,10 +150,5 @@ public class MetaTileEntityCPUSlot extends MetaTileEntityMultiblockPart implemen
         else return null;
     }
 
-    @Override
-    public double getEstimatedCWU(int power, double temp) {
-        CPURegistry.CPUEntry stats = getStats();
-        if (stats == null) return 0;
-        return stats.getCWU(power, temp);
-    }
+
 }

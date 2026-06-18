@@ -1,8 +1,6 @@
 package wfcore.client.render;
 
-import com.modularmods.mcgltf.RenderedGltfModel;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -81,7 +79,6 @@ public class AnimatedRenderQueue {
         GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
         GL30.glBindVertexArray(0);
         GL11.glPopAttrib();
-
 
 
         Minecraft.getMinecraft().entityRenderer.disableLightmap();

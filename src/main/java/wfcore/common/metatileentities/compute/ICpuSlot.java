@@ -5,14 +5,8 @@ import wfcore.common.items.registry.CPURegistry;
 
 public interface ICpuSlot {
 
-    double getEstimatedCWU(int power, double temp);
-
     @Nullable
     CPURegistry.CPUEntry getStats();
-
-
-
-
 
 
 }
