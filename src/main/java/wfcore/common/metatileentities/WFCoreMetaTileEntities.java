@@ -8,7 +8,9 @@ import wfcore.Reference;
 import wfcore.common.metatileentities.compute.MetaTileEntityCPUSlot;
 import wfcore.common.metatileentities.compute.MetaTileEntityCooling;
 import wfcore.common.metatileentities.compute.MetaTileEntityRAMSlot;
+import wfcore.common.metatileentities.electric.MetaTileEntityACHatch;
 import wfcore.common.metatileentities.electric.MetaTileEntityPrinter;
+import wfcore.common.metatileentities.multi.electric.MetaTileEntityLargeTransformer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityComputer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityLightGroundVehicleFactory;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityMainframe;
@@ -34,6 +36,9 @@ public class WFCoreMetaTileEntities {
     public static MetaTileEntityResearchUnit RESEARCH_UNIT;
     public static MetaTileEntityPrinter PRINTER;
     public static MetaTileEntityLightGroundVehicleFactory LIGHT_GROUND_VEHICLE_FACTORY;
+    public static MetaTileEntityLargeTransformer LARGE_TRANSFORMER;
+    public static MetaTileEntityACHatch AC_INPUT_HATCH;
+    public static MetaTileEntityACHatch AC_OUTPUT_HATCH;
 
     public static int id = 10000;
     public static void init() {
@@ -51,6 +56,9 @@ public class WFCoreMetaTileEntities {
         PRINTER = registerMetaTileEntity(id++, new MetaTileEntityPrinter(location("printer"), GTValues.EV));
         LIGHT_GROUND_VEHICLE_FACTORY = registerMetaTileEntity(id++,
                 new MetaTileEntityLightGroundVehicleFactory(location("light_ground_vehicle_factory")));
+        LARGE_TRANSFORMER = registerMetaTileEntity(id++, new MetaTileEntityLargeTransformer(location("large_transformer")));
+        AC_INPUT_HATCH = registerMetaTileEntity(id++, new MetaTileEntityACHatch(location("ac_hatch.input"), GTValues.EV, false));
+        AC_OUTPUT_HATCH = registerMetaTileEntity(id++, new MetaTileEntityACHatch(location("ac_hatch.output"), GTValues.EV, true));
 
     }
 

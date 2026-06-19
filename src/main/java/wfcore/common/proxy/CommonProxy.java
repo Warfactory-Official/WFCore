@@ -3,6 +3,8 @@ package wfcore.common.proxy;
 import com.cleanroommc.modularui.factory.GuiManager;
 import gregtech.api.GregTechAPI;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.event.*;
@@ -26,6 +28,9 @@ public class CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         GregTechAPI.networkHandler.registerPacket(SPacketUpdateRenderMask.class);
         GuiManager.registerFactory(WFGuiFactory.INSTANCE);
+        wfcore.common.capability.WFCapabilities.register();
+        GameRegistry.registerTileEntity(wfcore.common.pipenet.ac.tile.TileEntityACPipe.class,
+                new ResourceLocation(wfcore.Reference.MODID, "ac_pipe"));
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new RegistryEvents());
         MinecraftForge.EVENT_BUS.register(Retrofitter.INSTANCE);

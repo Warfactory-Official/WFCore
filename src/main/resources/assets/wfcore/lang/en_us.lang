@@ -128,6 +128,27 @@ wfcore.jei.cwu=CWU/run: %s
 wfcore.jei.eut=Power: %s EU/t
 wfcore.jei.total_cwu=Total CWU: %s
 
+# AC power network
+tile.ac_cable_single.name=Steel Wire (AC)
+tile.ac_cable_double.name=Steel Wire (AC, Double)
+tile.ac_cable_quadruple.name=Steel Wire (AC, Quadruple)
+tile.ac_cable_octal.name=Steel Wire (AC, Octal)
+tile.ac_cable_hex.name=Steel Wire (AC, Hex)
+wfcore.ac_cable.throughput=Throughput: %s EU/t (AC)
+wfcore.ac_cable.desc=§7Lossless AC power. Only links Large Transformers.
+wfcore.machine.ac_hatch.input.name=AC Input Converter (AC->DC)
+wfcore.machine.ac_hatch.output.name=AC Output Converter (DC->AC)
+wfcore.machine.ac_hatch.input=Receives AC from a cable; the transformer converts it back to EU
+wfcore.machine.ac_hatch.output=Sends transformer EU out as AC onto a cable
+wfcore.machine.large_transformer.name=Large Transformer
+wfcore.machine.large_transformer.tooltip1=3x3x3. Converts EU to/from lossless AC power (no laser tech)
+wfcore.machine.large_transformer.tooltip2=One AC output (DC->AC) and one AC input (AC->DC) converter hatch
+wfcore.machine.large_transformer.tooltip3=Consumes coolant per EU converted; cooler coolants are more efficient
+wfcore.gui.transformer.dc_to_ac=DC -> AC: ready
+wfcore.gui.transformer.ac_to_dc=AC -> DC: ready
+wfcore.gui.transformer.no_ac_out=No AC output converter
+wfcore.gui.transformer.no_ac_in=No AC input converter
+
 # researches
 wfcore.research.basic_electronics.name=Basic Electronics
 wfcore.research.basic_electronics.desc=Foundational electronic components.

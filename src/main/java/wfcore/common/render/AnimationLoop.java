@@ -16,6 +16,8 @@ public class AnimationLoop {
         @Getter
         private boolean finished = false;
 
+        private float duration = -1f;
+
 
         public AnimationLoop(List<InterpolatedChannel> animation) {
             this.animation = animation;
@@ -39,13 +41,16 @@ public class AnimationLoop {
     }
 
 
-    private float getDuration() {
-            float max = 0f;
-            for (InterpolatedChannel c : animation) {
-                float[] keys = c.getKeys();
-                max = Math.max(max, keys[keys.length - 1]);
+    public float getDuration() {
+            if (duration < 0f) {
+                float max = 0f;
+                for (InterpolatedChannel c : animation) {
+                    float[] keys = c.getKeys();
+                    if (keys.length > 0) max = Math.max(max, keys[keys.length - 1]);
+                }
+                duration = max;
             }
-            return max;
+            return duration;
         }
     }
 

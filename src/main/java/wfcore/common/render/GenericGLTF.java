@@ -3,11 +3,8 @@ package wfcore.common.render;
 import com.modularmods.mcgltf.MCglTF;
 import gregtech.api.metatileentity.MetaTileEntity;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.model.animation.Animation;
-import wfcore.Reference;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.api.metatileentity.MteRenderer;
-import wfcore.common.metatileentities.multi.electric.MetaTileEntityRadar;
 
 /**
  * Generic GLTF renderer for MetaTileEntities that implement {@link IAnimatedMTE}.
@@ -50,25 +47,18 @@ public class GenericGLTF<T extends MetaTileEntity & IAnimatedMTE> extends MteRen
     }
 
     /**
-     * Renders the GLTF model for the tile entity, updating animation state as needed.
+     * Renders the GLTF model for the tile entity.
      * <p>
-     * Animation progress is calculated as the difference between the world time and the tile entity's
-     * epoch. This allows independent animation progress per tile entity while still using global
-     * world time. If the animation is finished or has not started yet, it will not update.
+     * Animation playback is delegated to the tile entity's {@link wfcore.common.render.AnimationController}
+     * via {@link #applyAnimation}, which drives a frame-delta clock so the model can freeze on power
+     * loss, resume seamlessly, and finish its current loop before switching states.
      *
      * @param mte          the tile entity to render
      * @param partialTicks partial tick interpolation for smooth animation
      * @param <T>          ensures type safety; must match the tile entity type constraint
      */
     public <T extends MetaTileEntity & IAnimatedMTE> void renderGLTF(T mte, float partialTicks) {
-        long currentTick = mte.getWorld().getTotalWorldTime();
-        long startTick = mte.getAnimEpoch();
-        float ticksElapsed = (currentTick - startTick) + partialTicks;
-        float timeS = ticksElapsed / 20f;
-        var animation = animations.get(mte.getAnimState());
-        if (animation != null && timeS >= 0) {
-            animation.update(timeS);
-        }
+        applyAnimation(mte, partialTicks);
         if (MCglTF.getInstance().isShaderModActive()) {
             renderedScene.renderForShaderMod();
         } else {

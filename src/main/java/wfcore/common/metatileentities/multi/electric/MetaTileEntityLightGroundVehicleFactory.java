@@ -49,11 +49,6 @@ public class MetaTileEntityLightGroundVehicleFactory extends MetaTileEntityVehic
     }
 
     @Override
-    public long getAnimEpoch() {
-        return 0L;
-    }
-
-    @Override
     public String getAnimState() {
         return isActive() ? "running" : "idle";
     }

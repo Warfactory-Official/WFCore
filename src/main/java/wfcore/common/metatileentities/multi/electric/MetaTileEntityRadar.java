@@ -51,6 +51,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import wfcore.api.metatileentity.AnimTransition;
 import wfcore.api.metatileentity.IAnimatedMTE;
 import wfcore.api.radar.MultiblockRadarLogic;
 import wfcore.client.render.WFTextures;
@@ -153,42 +154,41 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     private IOpticalComputationProvider computationProvider;
     @Getter
     private String animState = "idle";
-    @Getter
-    private long animEpoch = 0L;
+    private boolean animRunning = true;
 
     public MetaTileEntityRadar(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
         ANIMATED_BLOCKS = new ArrayList<>(ANIM_BLOCKS_CONTROLLER_OFFSETS.size());
     }
 
-    public void setAnimState(String state) {
-        if(this.animState.equals(state)) return;
+    private void updateAnim(String state, boolean running) {
+        if (state.equals(this.animState) && running == this.animRunning) return;
         this.animState = state;
-        this.animEpoch = getWorld().getTotalWorldTime();
-        if(!getWorld().isRemote){
+        this.animRunning = running;
+        if (!getWorld().isRemote) {
             writeCustomData(CHANGE_ANIM, buf -> {
-                buf.writeString(animState);
-                buf.writeLong(animEpoch);
+                buf.writeString(state);
+                buf.writeBoolean(running);
             });
         }
-
     }
-    public void setAnimEpoch() {
-        this.animEpoch = getWorld().getTotalWorldTime();
-        if(!getWorld().isRemote){
-            writeCustomData(CHANGE_ANIM, buf -> {
-                buf.writeString(animState);
-                buf.writeLong(animEpoch);
-            });
-        }
 
+    @Override
+    public boolean isAnimationRunning() {
+        return animRunning;
+    }
+
+    @Override
+    public AnimTransition getAnimTransition(String from, String to) {
+        // spin up instantly, but play the dish's rotation out to its loop end before settling to idle
+        return "running".equals(to) ? AnimTransition.SNAP : AnimTransition.FINISH_LOOP;
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
         this.animState = buf.readString(32);
-        this.animEpoch = buf.readLong();
+        this.animRunning = buf.readBoolean();
         this.logic.finished = buf.readBoolean();
     }
 
@@ -201,7 +201,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
             case SYNC_RADAR_STATE -> this.logic.setActive(buf.readBoolean());
             case CHANGE_ANIM -> {
                 this.animState = buf.readString(32);
-                this.animEpoch = buf.readLong();
+                this.animRunning = buf.readBoolean();
             }
             case SYNC_RADAR_FINISHED -> this.logic.finished = buf.readBoolean();
         }
@@ -397,7 +397,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         logic.invalidateStructure();
         disableBlockRendering(false);
         if (!getWorld().isRemote) {
-            setAnimState("idle");
+            updateAnim("idle", true);
             writeCustomData(SYNC_RADAR_STATE, buf -> buf.writeBoolean(false));
             writeCustomData(SYNC_RADAR_PROGRESS, buf -> buf.writeInt(0));
         }
@@ -414,7 +414,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
         buf.writeString(animState);
-        buf.writeLong(animEpoch);
+        buf.writeBoolean(animRunning);
         buf.writeBoolean(logic.finished);
 
         var world = getWorld();
@@ -429,10 +429,13 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         if (getWorld().isRemote)
             return;
 
-        String targetState = isActive() ? "running" : "idle";
-        if (!this.animState.equals(targetState)) {
-            setAnimState(targetState);
-        }
+        boolean active = logic.isActive();
+        // a scan that has begun but not finished keeps the dish in the "running" pose...
+        boolean midScan = logic.getScanProgress() > 0 && !logic.finished;
+        String targetState = (active || midScan) ? "running" : "idle";
+        // ...but the clock only advances while it is actually drawing power, so a power loss freezes it
+        boolean frozen = "running".equals(targetState) && !active;
+        updateAnim(targetState, !frozen);
 
         if (logic.tickScan()) {
             completeScan();
@@ -649,7 +652,7 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
         logic.writeToNBT(data);
         data.setTag("SlotDataStick", dataStickSlot.serializeNBT());
         data.setString("AnimState", this.animState);
-        data.setLong("AnimEpoch", this.animEpoch);
+        data.setBoolean("AnimRunning", this.animRunning);
         return data;
     }
 
@@ -657,8 +660,8 @@ public class MetaTileEntityRadar extends MultiblockWithDisplayBase implements IA
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         logic.readFromNBT(data);
-        this.animState = data.getString("AnimState");
-        this.animEpoch = data.getLong("AnimEpoch");
+        if (data.hasKey("AnimState")) this.animState = data.getString("AnimState");
+        this.animRunning = !data.hasKey("AnimRunning") || data.getBoolean("AnimRunning");
         if (data.hasKey("SlotDataStick")) {
             dataStickSlot.deserializeNBT(data.getCompoundTag("SlotDataStick"));
         }

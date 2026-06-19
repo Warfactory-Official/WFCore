@@ -46,6 +46,7 @@ public class RegistryEvents {
 
     @SubscribeEvent
     public void registerBlocks(@NotNull RegistryEvent.Register<Block> event) {
+        wfcore.common.pipenet.ac.ACPipes.init();
         IForgeRegistry<Block> registry = event.getRegistry();
         BlockRegistry.BLOCKS.forEach(registry::register);
         WFCoreMetaTileEntities.init();

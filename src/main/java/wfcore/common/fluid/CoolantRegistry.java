@@ -14,6 +14,8 @@ public class CoolantRegistry {
 
     public static void register() {
         register(FluidRegistry.WATER, FluidRegistry.getFluid("hot_water"), 1.0); //TODO: add hot water texture
+        register(FluidRegistry.getFluid("oxygen"), null, 3.0);
+        register(FluidRegistry.getFluid("helium"), null, 6.0);
         register(FluidRegistry.getFluid("liquid_nitrogen"), FluidRegistry.getFluid("nitrogen"), 10.0);
     }
 

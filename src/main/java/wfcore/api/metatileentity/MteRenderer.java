@@ -14,10 +14,13 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.util.EnumFacing;
 import org.lwjgl.opengl.GL11;
+import wfcore.common.render.AnimationController;
 import wfcore.common.render.AnimationLoop;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * Base renderer class for MetaTileEntities that support GLTF animations.
@@ -46,6 +49,35 @@ public abstract class MteRenderer<T extends MetaTileEntity & IAnimatedMTE> imple
      * Populated when the GLTF model is received via {@link #onReceiveSharedModel}.
      */
     protected RenderedGltfScene renderedScene;
+
+    /**
+     * Playback state per tile entity. Weakly keyed so controllers are dropped when their tile unloads.
+     */
+    private final Map<IAnimatedMTE, AnimationController> controllers = new WeakHashMap<>();
+
+    /**
+     * Advances the calling tile entity's {@link AnimationController} and applies the resolved pose to
+     * the shared model, immediately before it is drawn.
+     * <p>
+     * Time is driven by frame deltas, so a tile whose {@link IAnimatedMTE#isAnimationRunning()} is
+     * false freezes in place (power loss) and resumes seamlessly, while state changes honour the
+     * tile's {@link wfcore.api.metatileentity.AnimTransition} policy to avoid snapping.
+     *
+     * @param mte          the tile entity being rendered
+     * @param partialTicks partial tick interpolation for this frame
+     */
+    protected <M extends MetaTileEntity & IAnimatedMTE> void applyAnimation(M mte, float partialTicks) {
+        if (animations == null) return;
+        AnimationController controller = controllers.get(mte);
+        if (controller == null) {
+            controller = new AnimationController();
+            controllers.put(mte, controller);
+        }
+        float now = (float) mte.getWorld().getTotalWorldTime() + partialTicks;
+        controller.advance(mte, animations, now);
+        AnimationLoop loop = animations.get(controller.getCurrent());
+        if (loop != null) loop.update(controller.getTime());
+    }
 
     /**
      * Rotates the model to face a specified direction.

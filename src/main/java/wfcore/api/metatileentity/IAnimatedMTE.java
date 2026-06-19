@@ -70,14 +70,31 @@ public interface IAnimatedMTE extends IFastRenderMetaTileEntity {
     }
 
     /**
-     * Returns the "epoch" of the current animation in ticks.
+     * Whether the current animation's clock should advance this frame.
      * <p>
-     * This value is used to compute animation progress relative to world time.
-     * Typically set on the server when an animation starts or resumes.
+     * Returning false freezes the model on its current frame (e.g. on power loss); returning true
+     * again resumes from that frame, giving seamless continuation. Defaults to always running.
      *
-     * @return world tick timestamp when the animation began
+     * @return true to advance the animation, false to freeze it in place
      */
-    long getAnimEpoch();
+    default boolean isAnimationRunning() {
+        return true;
+    }
+
+    /**
+     * How to leave the {@code from} animation when the desired state changes to {@code to}.
+     * <p>
+     * {@link AnimTransition#FINISH_LOOP} keeps playing {@code from} until it reaches its loop end and
+     * only then switches, so a looping machine never snaps between poses. {@link AnimTransition#SNAP}
+     * switches immediately. Defaults to {@link AnimTransition#FINISH_LOOP}.
+     *
+     * @param from the animation currently playing
+     * @param to   the animation being requested
+     * @return the transition policy to apply
+     */
+    default AnimTransition getAnimTransition(String from, String to) {
+        return AnimTransition.FINISH_LOOP;
+    }
 
     /**
      * Utility method to cast this tile entity to its concrete type.
