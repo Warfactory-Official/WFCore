@@ -74,6 +74,11 @@ dependencies {
     // WF mods
     modImplementation ("com.hbm:ntm-ce-java25:2.3.0.0-SNAPSHOT") { transitive = false }
     modImplementation "curse.maven:mchce-1383222:7628896"
+    // WarForge 2.1.0 (chunk-reinforcement + faction data APIs). Build it locally first:
+    //   cd WarForge-Remaintained && ./gradlew publishToMavenLocal
+    // Resolved via mavenLocal(). Swap back to the CurseForge build once 2.1.0 ships there.
+    modImplementation('com.flansmod.warforge:warforge-remaintained:2.1.0') { transitive = false }
+    // modImplementation "curse.maven:warforge-factions-remaintained-1340172:8283739"
 
     modImplementation "curse.maven:ctm-267602:2915363"
     modImplementation "curse.maven:fugue-1005815:7853971"

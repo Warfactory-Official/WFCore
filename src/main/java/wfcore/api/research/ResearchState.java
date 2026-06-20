@@ -61,6 +61,11 @@ public final class ResearchState {
         return Math.min(1f, (getCompletedRuns(researchId) + partial) / r.getRunsRequired());
     }
 
+    /** True if this state holds any research progress at all (completed runs or banked partial compute). */
+    public boolean hasAnyData() {
+        return !completedRuns.isEmpty() || !partialCWU.isEmpty();
+    }
+
     public void clear() {
         completedRuns.clear();
         partialCWU.clear();

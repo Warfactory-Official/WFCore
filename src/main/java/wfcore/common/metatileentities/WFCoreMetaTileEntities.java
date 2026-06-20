@@ -10,6 +10,7 @@ import wfcore.common.metatileentities.compute.MetaTileEntityCooling;
 import wfcore.common.metatileentities.compute.MetaTileEntityRAMSlot;
 import wfcore.common.metatileentities.electric.MetaTileEntityACHatch;
 import wfcore.common.metatileentities.electric.MetaTileEntityPrinter;
+import wfcore.common.metatileentities.multi.electric.MetaTileEntityChunkReinforcer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityLargeTransformer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityComputer;
 import wfcore.common.metatileentities.multi.electric.MetaTileEntityLightGroundVehicleFactory;
@@ -39,6 +40,11 @@ public class WFCoreMetaTileEntities {
     public static MetaTileEntityLargeTransformer LARGE_TRANSFORMER;
     public static MetaTileEntityACHatch AC_INPUT_HATCH;
     public static MetaTileEntityACHatch AC_OUTPUT_HATCH;
+    public static MetaTileEntityChunkReinforcer CHUNK_REINFORCER_LV;
+    public static MetaTileEntityChunkReinforcer CHUNK_REINFORCER_MV;
+    public static MetaTileEntityChunkReinforcer CHUNK_REINFORCER_HV;
+    public static MetaTileEntityChunkReinforcer CHUNK_REINFORCER_EV;
+    public static MetaTileEntityChunkReinforcer CHUNK_REINFORCER_IV;
 
     public static int id = 10000;
     public static void init() {
@@ -60,6 +66,12 @@ public class WFCoreMetaTileEntities {
         AC_INPUT_HATCH = registerMetaTileEntity(id++, new MetaTileEntityACHatch(location("ac_hatch.input"), GTValues.EV, false));
         AC_OUTPUT_HATCH = registerMetaTileEntity(id++, new MetaTileEntityACHatch(location("ac_hatch.output"), GTValues.EV, true));
 
+        // Chunk reinforcers: (tier, reinforcement radius in chunks, siege defence bonus). Tuned per voltage.
+        CHUNK_REINFORCER_LV = registerMetaTileEntity(id++, new MetaTileEntityChunkReinforcer(location("chunk_reinforcer.lv"), GTValues.LV, 1, 2));
+        CHUNK_REINFORCER_MV = registerMetaTileEntity(id++, new MetaTileEntityChunkReinforcer(location("chunk_reinforcer.mv"), GTValues.MV, 1, 3));
+        CHUNK_REINFORCER_HV = registerMetaTileEntity(id++, new MetaTileEntityChunkReinforcer(location("chunk_reinforcer.hv"), GTValues.HV, 2, 4));
+        CHUNK_REINFORCER_EV = registerMetaTileEntity(id++, new MetaTileEntityChunkReinforcer(location("chunk_reinforcer.ev"), GTValues.EV, 2, 6));
+        CHUNK_REINFORCER_IV = registerMetaTileEntity(id++, new MetaTileEntityChunkReinforcer(location("chunk_reinforcer.iv"), GTValues.IV, 3, 8));
     }
 
     private static ResourceLocation location(@NotNull String name) {

@@ -147,8 +147,8 @@ public class MetaTileEntityCooling extends MetaTileEntityMultiblockPart implemen
         EnumFacing exposedFace = getFrontFacing();
         Cover cover = getCoverAtSide(exposedFace);
 
-        if (cover != null) {
-            return 1;
+        if (cover instanceof wfcore.common.covers.CoverCoolingFan fan) {
+            return fan.getTier();
         }
         return 0;
     }

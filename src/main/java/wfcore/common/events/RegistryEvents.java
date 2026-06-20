@@ -68,6 +68,7 @@ public class RegistryEvents {
 
     @SubscribeEvent
     public void registerItems(RegistryEvent.Register<Item> event) {
+        wfcore.common.covers.WFCoreCovers.createItems();
         IForgeRegistry<Item> registry = event.getRegistry();
         ItemRegistry.ITEMS.forEach(registry::register);
         for (Block block : BlockRegistry.BLOCKS) {
@@ -79,7 +80,7 @@ public class RegistryEvents {
                 producer = custom.getItemBlock();
             ItemRegistry.createItemBlock(block, producer).ifPresent(registry::register);
         }
-
+        wfcore.common.covers.WFCoreCovers.registerDefinitions();
     }
 
     @SubscribeEvent
